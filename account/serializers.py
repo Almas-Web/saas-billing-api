@@ -4,7 +4,6 @@ from django.urls import reverse
 from django.template.loader import render_to_string
 from django.core.mail import EmailMultiAlternatives
 from .models import CustomUser
-
 class UserSerializer(serializers.ModelSerializer):
     class Meta:
         model = CustomUser
@@ -21,21 +20,18 @@ class UserSerializer(serializers.ModelSerializer):
 
     def send_email(self, user):
         verification_link = self.context['request'].build_absolute_uri(
-            reverse('verify_email', kwargs={'token': user.verification_token})
-        )
+            reverse('verify_email', kwargs={'token': user.verification_token}))
 
         subject = 'Verify your email'
         html_content = render_to_string('emails/verification_email.html', {
             'user': user.username,
-            'verification_link': verification_link
-        })
+            'verification_link': verification_link})
 
         email = EmailMultiAlternatives(
             subject,
             'Please verify your email address.',
             None,
-            [user.email]
-        )
+            [user.email] )
 
         email.attach_alternative(html_content, 'text/html')
         email.send(fail_silently=False)

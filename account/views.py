@@ -9,11 +9,8 @@ from .models import CustomUser
 from rest_framework.permissions import IsAuthenticated
 from .serializers import UserSerializer, UserLoginSerializer, UserUpdateSerializer
 
-
 class UserSignUp(generics.CreateAPIView):
     serializer_class = UserSerializer
-
-
 class VerifyEmail(generics.GenericAPIView):
     swagger_fake_view = True
 
