@@ -37,6 +37,7 @@ INSTALLED_APPS = [
     'payments',
     'billing',
     'usage',
+    "projects",
 
     # Third-party apps
     'rest_framework',
