@@ -8,6 +8,7 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.views import APIView
 from rest_framework.response import Response
 
+from billing.services import create_invoice_from_payment
 from .models import Payment, WebhookEvent
 from .serializers import PaymentSerializer, PaymentStatusSerializer
 from .services import create_payment_intent
@@ -18,9 +19,7 @@ class PaymentListView(generics.ListAPIView):
     permission_classes = [permissions.IsAuthenticated]
 
     def get_queryset(self):
-        return Payment.objects.filter(
-            user=self.request.user
-        ).order_by("-created_at")
+        return Payment.objects.filter(user=self.request.user).order_by("-created_at")
 
 
 class PaymentDetailView(generics.RetrieveAPIView):
@@ -28,9 +27,7 @@ class PaymentDetailView(generics.RetrieveAPIView):
     permission_classes = [permissions.IsAuthenticated]
 
     def get_queryset(self):
-        return Payment.objects.filter(
-            user=self.request.user
-        )
+        return Payment.objects.filter(user=self.request.user)
 
 
 class PaymentCreateView(generics.CreateAPIView):
@@ -61,9 +58,7 @@ class PaymentCreateView(generics.CreateAPIView):
             payment.delete()
 
             return Response(
-                {
-                    "detail": "An unexpected error occurred."
-                },
+                {"detail": "An unexpected error occurred."},
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR,
             )
 
@@ -81,9 +76,7 @@ class PaymentStatusUpdateView(generics.UpdateAPIView):
     permission_classes = [IsAuthenticated]
 
     def get_queryset(self):
-        return Payment.objects.filter(
-            user=self.request.user
-        )
+        return Payment.objects.filter(user=self.request.user)
 
 
 class PaymentWebhookView(APIView):
@@ -96,9 +89,7 @@ class PaymentWebhookView(APIView):
 
         if not sig_header:
             return Response(
-                {
-                    "detail": "Stripe signature header is missing."
-                },
+                {"detail": "Stripe signature header is missing."},
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
@@ -111,37 +102,28 @@ class PaymentWebhookView(APIView):
 
         except ValueError:
             return Response(
-                {
-                    "detail": "Invalid webhook payload."
-                },
+                {"detail": "Invalid webhook payload."},
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
         except stripe.error.SignatureVerificationError:
             return Response(
-                {
-                    "detail": "Invalid Stripe webhook signature."
-                },
+                {"detail": "Invalid Stripe webhook signature."},
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
         event_id = event["id"]
         event_type = event["type"]
 
-        existing_event = WebhookEvent.objects.filter(
-            event_id=event_id
-        ).first()
+        existing_event = WebhookEvent.objects.filter(event_id=event_id).first()
 
         if existing_event:
             return Response(
-                {
-                    "detail": "Webhook event already processed."
-                },
+                {"detail": "Webhook event already processed."},
                 status=status.HTTP_200_OK,
             )
 
         if event_type == "payment_intent.succeeded":
-
             payment_intent = event["data"]["object"]
 
             payment = Payment.objects.filter(
@@ -150,35 +132,21 @@ class PaymentWebhookView(APIView):
 
             if not payment:
                 return Response(
-                    {
-                        "detail": "Payment not found."
-                    },
+                    {"detail": "Payment not found."},
                     status=status.HTTP_404_NOT_FOUND,
                 )
 
             payment.status = "successful"
             payment.paid_at = timezone.now()
-
-            payment.save(
-                update_fields=[
-                    "status",
-                    "paid_at",
-                    "updated_at",
-                ]
-            )
+            payment.save(update_fields=["status", "paid_at", "updated_at"])
 
             if payment.subscription:
                 payment.subscription.status = "active"
+                payment.subscription.save(update_fields=["status", "updated_at"])
 
-                payment.subscription.save(
-                    update_fields=[
-                        "status",
-                        "updated_at",
-                    ]
-                )
+            create_invoice_from_payment(payment)
 
         elif event_type == "payment_intent.payment_failed":
-
             payment_intent = event["data"]["object"]
 
             payment = Payment.objects.filter(
@@ -187,30 +155,16 @@ class PaymentWebhookView(APIView):
 
             if not payment:
                 return Response(
-                    {
-                        "detail": "Payment not found."
-                    },
+                    {"detail": "Payment not found."},
                     status=status.HTTP_404_NOT_FOUND,
                 )
 
             payment.status = "failed"
-
-            payment.save(
-                update_fields=[
-                    "status",
-                    "updated_at",
-                ]
-            )
+            payment.save(update_fields=["status", "updated_at"])
 
             if payment.subscription:
                 payment.subscription.status = "past_due"
-
-                payment.subscription.save(
-                    update_fields=[
-                        "status",
-                        "updated_at",
-                    ]
-                )
+                payment.subscription.save(update_fields=["status", "updated_at"])
 
         else:
             return Response(
@@ -228,8 +182,6 @@ class PaymentWebhookView(APIView):
         )
 
         return Response(
-            {
-                "detail": "Stripe webhook processed successfully."
-            },
+            {"detail": "Stripe webhook processed successfully."},
             status=status.HTTP_200_OK,
         )
