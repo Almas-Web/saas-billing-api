@@ -16,21 +16,32 @@ def get_current_usage(user):
         .filter(
             user=user,
             period_start__lte=now,
-            period_end__gt=now
+            period_end__gt=now,
         )
         .order_by("-period_start")
         .first()
     )
 
     if usage:
-        actual_project_count = Project.objects.filter(user=user).count()
+        # Always synchronize project count
+        # with the actual number of projects.
+        actual_project_count = Project.objects.filter(
+            user=user
+        ).count()
 
         if usage.projects_count != actual_project_count:
             usage.projects_count = actual_project_count
-            usage.save(update_fields=["projects_count", "updated_at"])
+
+            usage.save(
+                update_fields=[
+                    "projects_count",
+                    "updated_at",
+                ]
+            )
 
         return usage
 
+    # Find active subscription
     subscription = (
         user.subscriptions
         .filter(status="active")
@@ -41,26 +52,32 @@ def get_current_usage(user):
 
     plan = subscription.plan if subscription else None
 
+    # Current month start
     period_start = now.replace(
         day=1,
         hour=0,
         minute=0,
         second=0,
-        microsecond=0
+        microsecond=0,
     )
 
+    # Next month start
     if period_start.month == 12:
         period_end = period_start.replace(
             year=period_start.year + 1,
-            month=1
+            month=1,
         )
     else:
         period_end = period_start.replace(
-            month=period_start.month + 1
+            month=period_start.month + 1,
         )
 
-    projects_count = Project.objects.filter(user=user).count()
+    # Get actual project count
+    projects_count = Project.objects.filter(
+        user=user
+    ).count()
 
+    # Create current usage record
     usage = UsageRecord.objects.create(
         user=user,
         plan=plan,
@@ -68,7 +85,7 @@ def get_current_usage(user):
         projects_count=projects_count,
         storage_used_gb=Decimal("0.00"),
         period_start=period_start,
-        period_end=period_end
+        period_end=period_end,
     )
 
     return usage
@@ -80,7 +97,10 @@ def increment_api_requests(user, amount=1):
     usage.api_requests += amount
 
     usage.save(
-        update_fields=["api_requests", "updated_at"]
+        update_fields=[
+            "api_requests",
+            "updated_at",
+        ]
     )
 
     return usage
@@ -89,10 +109,16 @@ def increment_api_requests(user, amount=1):
 def update_projects_count(user, count):
     usage = get_current_usage(user)
 
-    usage.projects_count = count
+    usage.projects_count = max(
+        0,
+        count,
+    )
 
     usage.save(
-        update_fields=["projects_count", "updated_at"]
+        update_fields=[
+            "projects_count",
+            "updated_at",
+        ]
     )
 
     return usage
@@ -101,10 +127,15 @@ def update_projects_count(user, count):
 def update_storage_usage(user, storage_gb):
     usage = get_current_usage(user)
 
-    usage.storage_used_gb = Decimal(str(storage_gb))
+    usage.storage_used_gb = Decimal(
+        str(storage_gb)
+    )
 
     usage.save(
-        update_fields=["storage_used_gb", "updated_at"]
+        update_fields=[
+            "storage_used_gb",
+            "updated_at",
+        ]
     )
 
     return usage
@@ -114,10 +145,14 @@ def check_api_request_limit(user):
     usage = get_current_usage(user)
 
     if not usage.plan:
-        raise PermissionDenied("No active subscription found.")
+        raise PermissionDenied(
+            "No active subscription found."
+        )
 
     if usage.api_requests >= usage.plan.max_api_requests:
-        raise PermissionDenied("API request limit exceeded.")
+        raise PermissionDenied(
+            "API request limit exceeded."
+        )
 
     return True
 
@@ -130,7 +165,10 @@ def track_api_request(user):
     usage.api_requests += 1
 
     usage.save(
-        update_fields=["api_requests", "updated_at"]
+        update_fields=[
+            "api_requests",
+            "updated_at",
+        ]
     )
 
     return usage
@@ -140,10 +178,14 @@ def check_project_limit(user):
     usage = get_current_usage(user)
 
     if not usage.plan:
-        raise PermissionDenied("No active subscription found.")
+        raise PermissionDenied(
+            "No active subscription found."
+        )
 
     if usage.projects_count >= usage.plan.max_projects:
-        raise PermissionDenied("Project limit exceeded.")
+        raise PermissionDenied(
+            "Project limit exceeded."
+        )
 
     return True
 
@@ -154,7 +196,10 @@ def increment_projects_count(user, amount=1):
     usage.projects_count += amount
 
     usage.save(
-        update_fields=["projects_count", "updated_at"]
+        update_fields=[
+            "projects_count",
+            "updated_at",
+        ]
     )
 
     return usage
@@ -165,11 +210,14 @@ def decrement_projects_count(user, amount=1):
 
     usage.projects_count = max(
         0,
-        usage.projects_count - amount
+        usage.projects_count - amount,
     )
 
     usage.save(
-        update_fields=["projects_count", "updated_at"]
+        update_fields=[
+            "projects_count",
+            "updated_at",
+        ]
     )
 
     return usage
@@ -179,7 +227,9 @@ def check_storage_limit(user, additional_storage_gb=0):
     usage = get_current_usage(user)
 
     if not usage.plan:
-        raise PermissionDenied("No active subscription found.")
+        raise PermissionDenied(
+            "No active subscription found."
+        )
 
     new_usage = (
         usage.storage_used_gb
@@ -187,20 +237,30 @@ def check_storage_limit(user, additional_storage_gb=0):
     )
 
     if new_usage > usage.plan.storage_limit_gb:
-        raise PermissionDenied("Storage limit exceeded.")
+        raise PermissionDenied(
+            "Storage limit exceeded."
+        )
 
     return True
 
 
 def add_storage_usage(user, storage_gb):
-    check_storage_limit(user, storage_gb)
+    check_storage_limit(
+        user,
+        storage_gb,
+    )
 
     usage = get_current_usage(user)
 
-    usage.storage_used_gb += Decimal(str(storage_gb))
+    usage.storage_used_gb += Decimal(
+        str(storage_gb)
+    )
 
     usage.save(
-        update_fields=["storage_used_gb", "updated_at"]
+        update_fields=[
+            "storage_used_gb",
+            "updated_at",
+        ]
     )
 
     return usage
