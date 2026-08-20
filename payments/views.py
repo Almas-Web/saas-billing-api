@@ -4,6 +4,7 @@ import requests
 from django.conf import settings
 from django.utils import timezone
 
+from drf_spectacular.utils import extend_schema
 from rest_framework import generics, permissions, status
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.views import APIView
@@ -13,7 +14,7 @@ from billing.services import create_invoice_from_payment
 from subscriptions.services import activate_or_renew_subscription
 
 from .models import Payment, WebhookEvent
-from .serializers import PaymentSerializer, PaymentStatusSerializer
+from .serializers import PaymentSerializer, PaymentStatusSerializer, SSLCommerzCallbackSerializer, SSLCommerzCallbackResponseSerializer
 from .services import create_payment_intent, get_payment_gateway
 
 
@@ -45,60 +46,33 @@ class PaymentCreateView(generics.CreateAPIView):
         try:
             if payment.gateway == "stripe":
                 intent = create_payment_intent(payment)
-                return Response(
-                    {
-                        "payment": PaymentSerializer(payment).data,
-                        "client_secret": intent.client_secret,
-                    },
-                    status=status.HTTP_201_CREATED,
-                )
+                return Response({"payment": PaymentSerializer(payment).data, "client_secret": intent.client_secret}, status=status.HTTP_201_CREATED)
 
             gateway = get_payment_gateway(payment.gateway)
             result = gateway.create_payment(payment)
 
-            response_data = {
-                "payment": PaymentSerializer(payment).data,
-                "detail": f"{payment.gateway} payment gateway is selected.",
-            }
+            response_data = {"payment": PaymentSerializer(payment).data, "detail": f"{payment.gateway} payment gateway is selected."}
 
             if payment.gateway == "sslcommerz" and result:
                 response_data["gateway_url"] = result.get("GatewayPageURL")
 
-            return Response(
-                response_data,
-                status=status.HTTP_201_CREATED,
-            )
+            return Response(response_data, status=status.HTTP_201_CREATED)
 
         except stripe.error.StripeError as exc:
             payment.delete()
-            return Response(
-                {
-                    "detail": "Unable to create Stripe PaymentIntent.",
-                    "error": str(exc),
-                },
-                status=status.HTTP_502_BAD_GATEWAY,
-            )
+            return Response({"detail": "Unable to create Stripe PaymentIntent.", "error": str(exc)}, status=status.HTTP_502_BAD_GATEWAY)
 
         except NotImplementedError as exc:
             payment.delete()
-            return Response(
-                {"detail": str(exc)},
-                status=status.HTTP_501_NOT_IMPLEMENTED,
-            )
+            return Response({"detail": str(exc)}, status=status.HTTP_501_NOT_IMPLEMENTED)
 
         except RuntimeError as exc:
             payment.delete()
-            return Response(
-                {"detail": str(exc)},
-                status=status.HTTP_503_SERVICE_UNAVAILABLE,
-            )
+            return Response({"detail": str(exc)}, status=status.HTTP_503_SERVICE_UNAVAILABLE)
 
         except Exception:
             payment.delete()
-            return Response(
-                {"detail": "An unexpected error occurred."},
-                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            )
+            return Response({"detail": "An unexpected error occurred."}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
 class PaymentStatusUpdateView(generics.UpdateAPIView):
@@ -119,50 +93,28 @@ class PaymentWebhookView(APIView):
         sig_header = request.META.get("HTTP_STRIPE_SIGNATURE")
 
         if not sig_header:
-            return Response(
-                {"detail": "Stripe signature header is missing."},
-                status=status.HTTP_400_BAD_REQUEST,
-            )
+            return Response({"detail": "Stripe signature header is missing."}, status=status.HTTP_400_BAD_REQUEST)
 
         try:
-            event = stripe.Webhook.construct_event(
-                payload,
-                sig_header,
-                settings.STRIPE_WEBHOOK_SECRET,
-            )
+            event = stripe.Webhook.construct_event(payload, sig_header, settings.STRIPE_WEBHOOK_SECRET)
         except ValueError:
-            return Response(
-                {"detail": "Invalid webhook payload."},
-                status=status.HTTP_400_BAD_REQUEST,
-            )
+            return Response({"detail": "Invalid webhook payload."}, status=status.HTTP_400_BAD_REQUEST)
         except stripe.error.SignatureVerificationError:
-            return Response(
-                {"detail": "Invalid Stripe webhook signature."},
-                status=status.HTTP_400_BAD_REQUEST,
-            )
+            return Response({"detail": "Invalid Stripe webhook signature."}, status=status.HTTP_400_BAD_REQUEST)
 
         event_id = event["id"]
         event_type = event["type"]
-
         existing_event = WebhookEvent.objects.filter(event_id=event_id).first()
 
         if existing_event:
-            return Response(
-                {"detail": "Webhook event already processed."},
-                status=status.HTTP_200_OK,
-            )
+            return Response({"detail": "Webhook event already processed."}, status=status.HTTP_200_OK)
 
         if event_type == "payment_intent.succeeded":
             payment_intent = event["data"]["object"]
-            payment = Payment.objects.filter(
-                stripe_payment_intent_id=payment_intent["id"]
-            ).first()
+            payment = Payment.objects.filter(stripe_payment_intent_id=payment_intent["id"]).first()
 
             if not payment:
-                return Response(
-                    {"detail": "Payment not found."},
-                    status=status.HTTP_404_NOT_FOUND,
-                )
+                return Response({"detail": "Payment not found."}, status=status.HTTP_404_NOT_FOUND)
 
             payment.status = "successful"
             payment.paid_at = timezone.now()
@@ -175,15 +127,10 @@ class PaymentWebhookView(APIView):
 
         elif event_type == "payment_intent.payment_failed":
             payment_intent = event["data"]["object"]
-            payment = Payment.objects.filter(
-                stripe_payment_intent_id=payment_intent["id"]
-            ).first()
+            payment = Payment.objects.filter(stripe_payment_intent_id=payment_intent["id"]).first()
 
             if not payment:
-                return Response(
-                    {"detail": "Payment not found."},
-                    status=status.HTTP_404_NOT_FOUND,
-                )
+                return Response({"detail": "Payment not found."}, status=status.HTTP_404_NOT_FOUND)
 
             payment.status = "failed"
             payment.save(update_fields=["status", "updated_at"])
@@ -193,24 +140,10 @@ class PaymentWebhookView(APIView):
                 payment.subscription.save(update_fields=["status", "updated_at"])
 
         else:
-            return Response(
-                {
-                    "detail": "Event received but not handled.",
-                    "event_type": event_type,
-                },
-                status=status.HTTP_200_OK,
-            )
+            return Response({"detail": "Event received but not handled.", "event_type": event_type}, status=status.HTTP_200_OK)
 
-        WebhookEvent.objects.create(
-            event_id=event_id,
-            event_type=event_type,
-            processed=True,
-        )
-
-        return Response(
-            {"detail": "Stripe webhook processed successfully."},
-            status=status.HTTP_200_OK,
-        )
+        WebhookEvent.objects.create(event_id=event_id, event_type=event_type, processed=True)
+        return Response({"detail": "Stripe webhook processed successfully."}, status=status.HTTP_200_OK)
 
 
 class SSLCommerzCallbackMixin:
@@ -218,10 +151,7 @@ class SSLCommerzCallbackMixin:
     permission_classes = []
 
     def get_payment(self, transaction_id):
-        return Payment.objects.filter(
-            gateway="sslcommerz",
-            transaction_id=transaction_id,
-        ).first()
+        return Payment.objects.filter(gateway="sslcommerz", transaction_id=transaction_id).first()
 
     def verify_payment(self, transaction_id):
         store_id = getattr(settings, "SSLCOMMERZ_STORE_ID", None)
@@ -231,23 +161,10 @@ class SSLCommerzCallbackMixin:
         if not store_id or not store_password:
             return None, "SSLCommerz credentials are not configured."
 
-        validation_url = (
-            "https://sandbox.sslcommerz.com/validator/api/validationserverAPI.php"
-            if is_sandbox
-            else "https://securepay.sslcommerz.com/validator/api/validationserverAPI.php"
-        )
+        validation_url = "https://sandbox.sslcommerz.com/validator/api/validationserverAPI.php" if is_sandbox else "https://securepay.sslcommerz.com/validator/api/validationserverAPI.php"
 
         try:
-            response = requests.get(
-                validation_url,
-                params={
-                    "val_id": transaction_id,
-                    "store_id": store_id,
-                    "store_passwd": store_password,
-                    "format": "json",
-                },
-                timeout=30,
-            )
+            response = requests.get(validation_url, params={"val_id": transaction_id, "store_id": store_id, "store_passwd": store_password, "format": "json"}, timeout=30)
             response.raise_for_status()
             data = response.json()
         except requests.RequestException:
@@ -284,167 +201,103 @@ class SSLCommerzCallbackMixin:
         create_invoice_from_payment(payment)
 
 
+@extend_schema(request=SSLCommerzCallbackSerializer, responses=SSLCommerzCallbackResponseSerializer)
 class SSLCommerzSuccessView(SSLCommerzCallbackMixin, APIView):
     def post(self, request):
         transaction_id = request.data.get("tran_id")
 
         if not transaction_id:
-            return Response(
-                {"detail": "SSLCommerz transaction ID is required."},
-                status=status.HTTP_400_BAD_REQUEST,
-            )
+            return Response({"detail": "SSLCommerz transaction ID is required."}, status=status.HTTP_400_BAD_REQUEST)
 
         payment = self.get_payment(transaction_id)
 
         if not payment:
-            return Response(
-                {"detail": "Payment not found."},
-                status=status.HTTP_404_NOT_FOUND,
-            )
+            return Response({"detail": "Payment not found."}, status=status.HTTP_404_NOT_FOUND)
 
         validation_data, error = self.verify_payment(transaction_id)
 
         if error:
-            return Response(
-                {"detail": error},
-                status=status.HTTP_400_BAD_REQUEST,
-            )
+            return Response({"detail": error}, status=status.HTTP_400_BAD_REQUEST)
 
         try:
             self.complete_payment(payment, validation_data)
         except ValueError as exc:
-            return Response(
-                {"detail": str(exc)},
-                status=status.HTTP_400_BAD_REQUEST,
-            )
+            return Response({"detail": str(exc)}, status=status.HTTP_400_BAD_REQUEST)
 
-        return Response(
-            {
-                "detail": "SSLCommerz payment completed successfully.",
-                "payment_id": payment.id,
-                "transaction_id": payment.transaction_id,
-                "status": payment.status,
-            },
-            status=status.HTTP_200_OK,
-        )
+        return Response({"detail": "SSLCommerz payment completed successfully.", "payment_id": payment.id, "transaction_id": payment.transaction_id, "status": payment.status}, status=status.HTTP_200_OK)
 
     def get(self, request):
         return self.post(request)
 
 
+@extend_schema(request=SSLCommerzCallbackSerializer, responses=SSLCommerzCallbackResponseSerializer)
 class SSLCommerzFailView(SSLCommerzCallbackMixin, APIView):
     def post(self, request):
         transaction_id = request.data.get("tran_id")
 
         if not transaction_id:
-            return Response(
-                {"detail": "SSLCommerz transaction ID is required."},
-                status=status.HTTP_400_BAD_REQUEST,
-            )
+            return Response({"detail": "SSLCommerz transaction ID is required."}, status=status.HTTP_400_BAD_REQUEST)
 
         payment = self.get_payment(transaction_id)
 
         if not payment:
-            return Response(
-                {"detail": "Payment not found."},
-                status=status.HTTP_404_NOT_FOUND,
-            )
+            return Response({"detail": "Payment not found."}, status=status.HTTP_404_NOT_FOUND)
 
         payment.status = "failed"
         payment.save(update_fields=["status", "updated_at"])
 
-        return Response(
-            {
-                "detail": "SSLCommerz payment failed.",
-                "payment_id": payment.id,
-                "transaction_id": payment.transaction_id,
-                "status": payment.status,
-            },
-            status=status.HTTP_200_OK,
-        )
+        return Response({"detail": "SSLCommerz payment failed.", "payment_id": payment.id, "transaction_id": payment.transaction_id, "status": payment.status}, status=status.HTTP_200_OK)
 
     def get(self, request):
         return self.post(request)
 
 
+@extend_schema(request=SSLCommerzCallbackSerializer, responses=SSLCommerzCallbackResponseSerializer)
 class SSLCommerzCancelView(SSLCommerzCallbackMixin, APIView):
     def post(self, request):
         transaction_id = request.data.get("tran_id")
 
         if not transaction_id:
-            return Response(
-                {"detail": "SSLCommerz transaction ID is required."},
-                status=status.HTTP_400_BAD_REQUEST,
-            )
+            return Response({"detail": "SSLCommerz transaction ID is required."}, status=status.HTTP_400_BAD_REQUEST)
 
         payment = self.get_payment(transaction_id)
 
         if not payment:
-            return Response(
-                {"detail": "Payment not found."},
-                status=status.HTTP_404_NOT_FOUND,
-            )
+            return Response({"detail": "Payment not found."}, status=status.HTTP_404_NOT_FOUND)
 
         payment.status = "failed"
         payment.save(update_fields=["status", "updated_at"])
 
-        return Response(
-            {
-                "detail": "SSLCommerz payment was cancelled.",
-                "payment_id": payment.id,
-                "transaction_id": payment.transaction_id,
-                "status": payment.status,
-            },
-            status=status.HTTP_200_OK,
-        )
+        return Response({"detail": "SSLCommerz payment was cancelled.", "payment_id": payment.id, "transaction_id": payment.transaction_id, "status": payment.status}, status=status.HTTP_200_OK)
 
     def get(self, request):
         return self.post(request)
 
 
+@extend_schema(request=SSLCommerzCallbackSerializer, responses=SSLCommerzCallbackResponseSerializer)
 class SSLCommerzIPNView(SSLCommerzCallbackMixin, APIView):
     def post(self, request):
         transaction_id = request.data.get("tran_id")
 
         if not transaction_id:
-            return Response(
-                {"detail": "SSLCommerz transaction ID is required."},
-                status=status.HTTP_400_BAD_REQUEST,
-            )
+            return Response({"detail": "SSLCommerz transaction ID is required."}, status=status.HTTP_400_BAD_REQUEST)
 
         payment = self.get_payment(transaction_id)
 
         if not payment:
-            return Response(
-                {"detail": "Payment not found."},
-                status=status.HTTP_404_NOT_FOUND,
-            )
+            return Response({"detail": "Payment not found."}, status=status.HTTP_404_NOT_FOUND)
 
         validation_data, error = self.verify_payment(transaction_id)
 
         if error:
-            return Response(
-                {"detail": error},
-                status=status.HTTP_400_BAD_REQUEST,
-            )
+            return Response({"detail": error}, status=status.HTTP_400_BAD_REQUEST)
 
         try:
             self.complete_payment(payment, validation_data)
         except ValueError as exc:
-            return Response(
-                {"detail": str(exc)},
-                status=status.HTTP_400_BAD_REQUEST,
-            )
+            return Response({"detail": str(exc)}, status=status.HTTP_400_BAD_REQUEST)
 
-        return Response(
-            {
-                "detail": "SSLCommerz IPN processed successfully.",
-                "payment_id": payment.id,
-                "transaction_id": payment.transaction_id,
-                "status": payment.status,
-            },
-            status=status.HTTP_200_OK,
-        )
+        return Response({"detail": "SSLCommerz IPN processed successfully.", "payment_id": payment.id, "transaction_id": payment.transaction_id, "status": payment.status}, status=status.HTTP_200_OK)
 
     def get(self, request):
         return self.post(request)

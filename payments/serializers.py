@@ -53,3 +53,12 @@ class WebhookEventSerializer(serializers.ModelSerializer):
         model = WebhookEvent
         fields = ["id", "event_id", "event_type", "processed", "created_at"]
         read_only_fields = ["id", "processed", "created_at"]
+
+class SSLCommerzCallbackSerializer(serializers.Serializer):
+    tran_id = serializers.CharField(required=False, help_text="SSLCommerz transaction ID.")
+
+class SSLCommerzCallbackResponseSerializer(serializers.Serializer):
+    detail = serializers.CharField()
+    payment_id = serializers.IntegerField(required=False)
+    transaction_id = serializers.CharField(required=False)
+    status = serializers.CharField(required=False)

@@ -374,6 +374,142 @@ paths:
               schema:
                 $ref: '#/components/schemas/Payment'
           description: ''
+  /api/payments/sslcommerz/cancel/:
+    get:
+      operationId: payments_sslcommerz_cancel_retrieve
+      tags:
+      - payments
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SSLCommerzCallbackResponse'
+          description: ''
+    post:
+      operationId: payments_sslcommerz_cancel_create
+      tags:
+      - payments
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SSLCommerzCallback'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/SSLCommerzCallback'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/SSLCommerzCallback'
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SSLCommerzCallbackResponse'
+          description: ''
+  /api/payments/sslcommerz/fail/:
+    get:
+      operationId: payments_sslcommerz_fail_retrieve
+      tags:
+      - payments
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SSLCommerzCallbackResponse'
+          description: ''
+    post:
+      operationId: payments_sslcommerz_fail_create
+      tags:
+      - payments
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SSLCommerzCallback'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/SSLCommerzCallback'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/SSLCommerzCallback'
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SSLCommerzCallbackResponse'
+          description: ''
+  /api/payments/sslcommerz/ipn/:
+    get:
+      operationId: payments_sslcommerz_ipn_retrieve
+      tags:
+      - payments
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SSLCommerzCallbackResponse'
+          description: ''
+    post:
+      operationId: payments_sslcommerz_ipn_create
+      tags:
+      - payments
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SSLCommerzCallback'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/SSLCommerzCallback'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/SSLCommerzCallback'
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SSLCommerzCallbackResponse'
+          description: ''
+  /api/payments/sslcommerz/success/:
+    get:
+      operationId: payments_sslcommerz_success_retrieve
+      tags:
+      - payments
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SSLCommerzCallbackResponse'
+          description: ''
+    post:
+      operationId: payments_sslcommerz_success_create
+      tags:
+      - payments
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SSLCommerzCallback'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/SSLCommerzCallback'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/SSLCommerzCallback'
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SSLCommerzCallbackResponse'
+          description: ''
   /api/payments/webhook/:
     post:
       operationId: payments_webhook_create
@@ -1215,6 +1351,25 @@ components:
         * `NO_SUBSCRIPTION` - NO_SUBSCRIPTION
         * `LIMIT_REACHED` - LIMIT_REACHED
         * `AVAILABLE` - AVAILABLE
+    SSLCommerzCallback:
+      type: object
+      properties:
+        tran_id:
+          type: string
+          description: SSLCommerz transaction ID.
+    SSLCommerzCallbackResponse:
+      type: object
+      properties:
+        detail:
+          type: string
+        payment_id:
+          type: integer
+        transaction_id:
+          type: string
+        status:
+          type: string
+      required:
+      - detail
     Subscribe:
       type: object
       properties:

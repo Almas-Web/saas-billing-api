@@ -9,3 +9,4 @@ typing_extensions==4.12.2
 stripe==15.5.0
 reportlab
 drf-spectacular
+django-cors-headers==4.9.0
