@@ -11,8 +11,9 @@ from rest_framework.response import Response
 from billing.services import create_invoice_from_payment
 from .models import Payment, WebhookEvent
 from .serializers import PaymentSerializer, PaymentStatusSerializer
-from .services import create_payment_intent
+from .services import create_payment_intent, get_payment_gateway
 from subscriptions.services import activate_or_renew_subscription
+
 
 class PaymentListView(generics.ListAPIView):
     serializer_class = PaymentSerializer
@@ -41,7 +42,27 @@ class PaymentCreateView(generics.CreateAPIView):
         payment = serializer.save(user=request.user)
 
         try:
-            intent = create_payment_intent(payment)
+            if payment.gateway == "stripe":
+                intent = create_payment_intent(payment)
+
+                return Response(
+                    {
+                        "payment": PaymentSerializer(payment).data,
+                        "client_secret": intent.client_secret,
+                    },
+                    status=status.HTTP_201_CREATED,
+                )
+
+            gateway = get_payment_gateway(payment.gateway)
+            gateway.create_payment(payment)
+
+            return Response(
+                {
+                    "payment": PaymentSerializer(payment).data,
+                    "detail": f"{payment.gateway} payment gateway is selected.",
+                },
+                status=status.HTTP_201_CREATED,
+            )
 
         except stripe.error.StripeError as exc:
             payment.delete()
@@ -54,6 +75,14 @@ class PaymentCreateView(generics.CreateAPIView):
                 status=status.HTTP_502_BAD_GATEWAY,
             )
 
+        except NotImplementedError as exc:
+            payment.delete()
+
+            return Response(
+                {"detail": str(exc)},
+                status=status.HTTP_501_NOT_IMPLEMENTED,
+            )
+
         except Exception:
             payment.delete()
 
@@ -61,14 +90,6 @@ class PaymentCreateView(generics.CreateAPIView):
                 {"detail": "An unexpected error occurred."},
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR,
             )
-
-        return Response(
-            {
-                "payment": PaymentSerializer(payment).data,
-                "client_secret": intent.client_secret,
-            },
-            status=status.HTTP_201_CREATED,
-        )
 
 
 class PaymentStatusUpdateView(generics.UpdateAPIView):
@@ -142,6 +163,7 @@ class PaymentWebhookView(APIView):
 
             if payment.subscription:
                 activate_or_renew_subscription(payment.subscription)
+
             create_invoice_from_payment(payment)
 
         elif event_type == "payment_intent.payment_failed":
@@ -162,7 +184,9 @@ class PaymentWebhookView(APIView):
 
             if payment.subscription:
                 payment.subscription.status = "past_due"
-                payment.subscription.save(update_fields=["status", "updated_at"])
+                payment.subscription.save(
+                    update_fields=["status", "updated_at"]
+                )
 
         else:
             return Response(
