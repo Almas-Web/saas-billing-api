@@ -12,7 +12,7 @@ from billing.services import create_invoice_from_payment
 from .models import Payment, WebhookEvent
 from .serializers import PaymentSerializer, PaymentStatusSerializer
 from .services import create_payment_intent
-
+from subscriptions.services import activate_or_renew_subscription
 
 class PaymentListView(generics.ListAPIView):
     serializer_class = PaymentSerializer
@@ -141,9 +141,7 @@ class PaymentWebhookView(APIView):
             payment.save(update_fields=["status", "paid_at", "updated_at"])
 
             if payment.subscription:
-                payment.subscription.status = "active"
-                payment.subscription.save(update_fields=["status", "updated_at"])
-
+                activate_or_renew_subscription(payment.subscription)
             create_invoice_from_payment(payment)
 
         elif event_type == "payment_intent.payment_failed":

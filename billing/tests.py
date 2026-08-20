@@ -71,34 +71,15 @@ class InvoiceTests(TestCase):
     def test_authenticated_user_can_view_invoice_list(self):
         self.client.force_authenticate(user=self.user)
 
-        response = self.client.get(
-            reverse("invoice-list")
-        )
+        response = self.client.get(reverse("invoice-list"))
 
-        self.assertEqual(
-            response.status_code,
-            status.HTTP_200_OK,
-        )
-
-        self.assertEqual(
-            len(response.data),
-            1,
-        )
-
-        self.assertEqual(
-            response.data[0]["amount"],
-            "10.00",
-        )
-
-        self.assertEqual(
-            response.data[0]["status"],
-            "paid",
-        )
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(len(response.data), 1)
+        self.assertEqual(response.data[0]["amount"], "10.00")
+        self.assertEqual(response.data[0]["status"], "paid")
 
     def test_unauthenticated_user_cannot_view_invoice_list(self):
-        response = self.client.get(
-            reverse("invoice-list")
-        )
+        response = self.client.get(reverse("invoice-list"))
 
         self.assertEqual(
             response.status_code,
@@ -115,24 +96,11 @@ class InvoiceTests(TestCase):
 
         self.client.force_authenticate(user=self.user)
 
-        response = self.client.get(
-            reverse("invoice-list")
-        )
+        response = self.client.get(reverse("invoice-list"))
 
-        self.assertEqual(
-            response.status_code,
-            status.HTTP_200_OK,
-        )
-
-        self.assertEqual(
-            len(response.data),
-            1,
-        )
-
-        self.assertEqual(
-            response.data[0]["amount"],
-            "10.00",
-        )
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(len(response.data), 1)
+        self.assertEqual(response.data[0]["amount"], "10.00")
 
     def test_user_can_view_own_invoice(self):
         self.client.force_authenticate(user=self.user)
@@ -144,20 +112,9 @@ class InvoiceTests(TestCase):
             )
         )
 
-        self.assertEqual(
-            response.status_code,
-            status.HTTP_200_OK,
-        )
-
-        self.assertEqual(
-            response.data["id"],
-            self.invoice.id,
-        )
-
-        self.assertEqual(
-            response.data["amount"],
-            "10.00",
-        )
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data["id"], self.invoice.id)
+        self.assertEqual(response.data["amount"], "10.00")
 
     def test_user_cannot_view_other_users_invoice(self):
         other_invoice = Invoice.objects.create(
@@ -195,39 +152,20 @@ class InvoiceTests(TestCase):
         )
 
     def test_invoice_is_created_with_correct_user(self):
-        self.assertEqual(
-            self.invoice.user,
-            self.user,
-        )
+        self.assertEqual(self.invoice.user, self.user)
 
     def test_invoice_is_connected_to_subscription(self):
-        self.assertEqual(
-            self.invoice.subscription,
-            self.subscription,
-        )
+        self.assertEqual(self.invoice.subscription, self.subscription)
 
     def test_invoice_is_connected_to_payment(self):
-        self.assertEqual(
-            self.invoice.payment,
-            self.payment,
-        )
+        self.assertEqual(self.invoice.payment, self.payment)
 
     def test_invoice_amount_and_currency(self):
-        self.assertEqual(
-            self.invoice.amount,
-            Decimal("10.00"),
-        )
-
-        self.assertEqual(
-            self.invoice.currency,
-            "usd",
-        )
+        self.assertEqual(self.invoice.amount, Decimal("10.00"))
+        self.assertEqual(self.invoice.currency, "usd")
 
     def test_paid_invoice_status(self):
-        self.assertEqual(
-            self.invoice.status,
-            "paid",
-        )
+        self.assertEqual(self.invoice.status, "paid")
 
     def test_invoice_can_have_draft_status(self):
         invoice = Invoice.objects.create(
@@ -237,10 +175,7 @@ class InvoiceTests(TestCase):
             status="draft",
         )
 
-        self.assertEqual(
-            invoice.status,
-            "draft",
-        )
+        self.assertEqual(invoice.status, "draft")
 
     def test_invoice_can_have_open_status(self):
         invoice = Invoice.objects.create(
@@ -250,10 +185,7 @@ class InvoiceTests(TestCase):
             status="open",
         )
 
-        self.assertEqual(
-            invoice.status,
-            "open",
-        )
+        self.assertEqual(invoice.status, "open")
 
     def test_invoice_can_have_void_status(self):
         invoice = Invoice.objects.create(
@@ -263,10 +195,7 @@ class InvoiceTests(TestCase):
             status="void",
         )
 
-        self.assertEqual(
-            invoice.status,
-            "void",
-        )
+        self.assertEqual(invoice.status, "void")
 
     def test_invoice_can_have_uncollectible_status(self):
         invoice = Invoice.objects.create(
@@ -276,16 +205,10 @@ class InvoiceTests(TestCase):
             status="uncollectible",
         )
 
-        self.assertEqual(
-            invoice.status,
-            "uncollectible",
-        )
+        self.assertEqual(invoice.status, "uncollectible")
 
     def test_payment_can_have_one_invoice(self):
-        self.assertEqual(
-            self.payment.invoice,
-            self.invoice,
-        )
+        self.assertEqual(self.payment.invoice, self.invoice)
 
     def test_invoice_payment_can_be_null(self):
         invoice = Invoice.objects.create(
@@ -296,9 +219,7 @@ class InvoiceTests(TestCase):
             status="draft",
         )
 
-        self.assertIsNone(
-            invoice.payment,
-        )
+        self.assertIsNone(invoice.payment)
 
     def test_invoice_subscription_can_be_null(self):
         invoice = Invoice.objects.create(
@@ -309,9 +230,7 @@ class InvoiceTests(TestCase):
             status="draft",
         )
 
-        self.assertIsNone(
-            invoice.subscription,
-        )
+        self.assertIsNone(invoice.subscription)
 
     def test_invoice_list_is_ordered_by_created_at(self):
         first_invoice = self.invoice
@@ -323,35 +242,87 @@ class InvoiceTests(TestCase):
             status="open",
         )
 
-        Invoice.objects.filter(
-            id=first_invoice.id
-        ).update(
+        Invoice.objects.filter(id=first_invoice.id).update(
             created_at=timezone.now() - timedelta(minutes=10)
         )
 
-        Invoice.objects.filter(
-            id=second_invoice.id
-        ).update(
+        Invoice.objects.filter(id=second_invoice.id).update(
             created_at=timezone.now()
         )
 
         self.client.force_authenticate(user=self.user)
 
+        response = self.client.get(reverse("invoice-list"))
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data[0]["id"], second_invoice.id)
+        self.assertEqual(response.data[1]["id"], first_invoice.id)
+
+    def test_authenticated_user_can_download_own_invoice_pdf(self):
+        self.client.force_authenticate(user=self.user)
+
         response = self.client.get(
-            reverse("invoice-list")
+            reverse(
+                "invoice-pdf-download",
+                kwargs={"pk": self.invoice.id},
+            )
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response["Content-Type"], "application/pdf")
+        self.assertIn("attachment", response["Content-Disposition"])
+        self.assertIn(
+            f"invoice-{self.invoice.id}.pdf",
+            response["Content-Disposition"],
+        )
+
+    def test_unauthenticated_user_cannot_download_invoice_pdf(self):
+        response = self.client.get(
+            reverse(
+                "invoice-pdf-download",
+                kwargs={"pk": self.invoice.id},
+            )
         )
 
         self.assertEqual(
             response.status_code,
-            status.HTTP_200_OK,
+            status.HTTP_401_UNAUTHORIZED,
+        )
+
+    def test_user_cannot_download_other_users_invoice_pdf(self):
+        other_invoice = Invoice.objects.create(
+            user=self.other_user,
+            amount=Decimal("20.00"),
+            currency="usd",
+            status="open",
+        )
+
+        self.client.force_authenticate(user=self.user)
+
+        response = self.client.get(
+            reverse(
+                "invoice-pdf-download",
+                kwargs={"pk": other_invoice.id},
+            )
         )
 
         self.assertEqual(
-            response.data[0]["id"],
-            second_invoice.id,
+            response.status_code,
+            status.HTTP_404_NOT_FOUND,
         )
 
-        self.assertEqual(
-            response.data[1]["id"],
-            first_invoice.id,
+    def test_invoice_pdf_contains_pdf_content(self):
+        self.client.force_authenticate(user=self.user)
+
+        response = self.client.get(
+            reverse(
+                "invoice-pdf-download",
+                kwargs={"pk": self.invoice.id},
+            )
         )
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+
+        content = b"".join(response.streaming_content)
+
+        self.assertTrue(content.startswith(b"%PDF"))
