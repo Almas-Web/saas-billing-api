@@ -10,25 +10,19 @@ from .models import Payment, WebhookEvent
 from .serializers import PaymentSerializer, PaymentStatusSerializer
 from .services import create_payment_intent, get_payment_gateway
 from subscriptions.services import activate_or_renew_subscription
-
 class PaymentListView(generics.ListAPIView):
     serializer_class = PaymentSerializer
     permission_classes = [permissions.IsAuthenticated]
-
     def get_queryset(self):
         return Payment.objects.filter(user=self.request.user).order_by("-created_at")
-
 class PaymentDetailView(generics.RetrieveAPIView):
     serializer_class = PaymentSerializer
     permission_classes = [permissions.IsAuthenticated]
-
     def get_queryset(self):
         return Payment.objects.filter(user=self.request.user)
-
 class PaymentCreateView(generics.CreateAPIView):
     serializer_class = PaymentSerializer
     permission_classes = [IsAuthenticated]
-
     def create(self, request, *args, **kwargs):
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
@@ -49,18 +43,15 @@ class PaymentCreateView(generics.CreateAPIView):
         except Exception:
             payment.delete()
             return Response({"detail": "An unexpected error occurred."}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-
 class PaymentStatusUpdateView(generics.UpdateAPIView):
     serializer_class = PaymentStatusSerializer
     permission_classes = [IsAuthenticated]
-
     def get_queryset(self):
         return Payment.objects.filter(user=self.request.user)
-
 class PaymentWebhookView(APIView):
+    serializer_class = PaymentSerializer
     authentication_classes = []
     permission_classes = []
-
     def post(self, request):
         payload = request.body
         sig_header = request.META.get("HTTP_STRIPE_SIGNATURE")

@@ -38,6 +38,7 @@ INSTALLED_APPS = [
     'billing',
     'usage',
     "projects",
+    "drf_spectacular",
 
     # Third-party apps
     'rest_framework',
@@ -148,6 +149,7 @@ REST_FRAMEWORK = {
     "DEFAULT_THROTTLE_CLASSES": (
         "usage.throttles.DatabaseRateThrottle",
     ),
+    "DEFAULT_SCHEMA_CLASS": "drf_spectacular.openapi.AutoSchema",
 }
 
 SIMPLE_JWT = {
@@ -158,3 +160,13 @@ SIMPLE_JWT = {
 MEDIA_URL = '/media/'
 MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
 AUTH_USER_MODEL = 'account.CustomUser'
+
+SPECTACULAR_SETTINGS = {
+    "TITLE": "SaaS Billing API",
+    "DESCRIPTION": "Subscription, Payment, Billing and Usage API",
+    "VERSION": "1.0.0",
+    "ENUM_NAME_OVERRIDES": {
+        "PaymentStatusEnum": "payments.models.Payment.STATUS_CHOICES",
+        "ProjectLimitStatusEnum": ["NO_SUBSCRIPTION", "LIMIT_REACHED", "AVAILABLE"],
+    },
+}

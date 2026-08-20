@@ -1,0 +1,1462 @@
+openapi: 3.0.3
+info:
+  title: SaaS Billing API
+  version: 1.0.0
+  description: Subscription, Payment, Billing and Usage API
+paths:
+  /api/account/login/:
+    post:
+      operationId: account_login_create
+      tags:
+      - account
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UserLogin'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/UserLogin'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/UserLogin'
+        required: true
+      security:
+      - jwtAuth: []
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserLogin'
+          description: ''
+  /api/account/profile/:
+    get:
+      operationId: account_profile_retrieve
+      tags:
+      - account
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+          description: ''
+    put:
+      operationId: account_profile_update
+      tags:
+      - account
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UserUpdate'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/UserUpdate'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/UserUpdate'
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserUpdate'
+          description: ''
+    patch:
+      operationId: account_profile_partial_update
+      tags:
+      - account
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchedUserUpdate'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PatchedUserUpdate'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PatchedUserUpdate'
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserUpdate'
+          description: ''
+  /api/account/resend-verification/:
+    post:
+      operationId: account_resend_verification_create
+      tags:
+      - account
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/User'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/User'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/User'
+        required: true
+      security:
+      - jwtAuth: []
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+          description: ''
+  /api/account/signup/:
+    post:
+      operationId: account_signup_create
+      tags:
+      - account
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/User'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/User'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/User'
+        required: true
+      security:
+      - jwtAuth: []
+      - {}
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+          description: ''
+  /api/account/token/refresh/:
+    post:
+      operationId: account_token_refresh_create
+      description: |-
+        Takes a refresh type JSON web token and returns an access type JSON web
+        token if the refresh token is valid.
+      tags:
+      - account
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TokenRefresh'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/TokenRefresh'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/TokenRefresh'
+        required: true
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TokenRefresh'
+          description: ''
+  /api/account/verify-email/{token}/:
+    get:
+      operationId: account_verify_email_retrieve
+      parameters:
+      - in: path
+        name: token
+        schema:
+          type: string
+        required: true
+      tags:
+      - account
+      security:
+      - jwtAuth: []
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+          description: ''
+  /api/billing/invoices/:
+    get:
+      operationId: billing_invoices_list
+      tags:
+      - billing
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Invoice'
+          description: ''
+  /api/billing/invoices/{id}/:
+    get:
+      operationId: billing_invoices_retrieve
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        required: true
+      tags:
+      - billing
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Invoice'
+          description: ''
+  /api/billing/invoices/{id}/download/:
+    get:
+      operationId: billing_invoices_download_retrieve
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        required: true
+      tags:
+      - billing
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Invoice'
+          description: ''
+  /api/payments/:
+    get:
+      operationId: payments_list
+      tags:
+      - payments
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Payment'
+          description: ''
+  /api/payments/{id}/:
+    get:
+      operationId: payments_retrieve
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        required: true
+      tags:
+      - payments
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Payment'
+          description: ''
+  /api/payments/{id}/status/:
+    put:
+      operationId: payments_status_update
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        required: true
+      tags:
+      - payments
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PaymentStatus'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PaymentStatus'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PaymentStatus'
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaymentStatus'
+          description: ''
+    patch:
+      operationId: payments_status_partial_update
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        required: true
+      tags:
+      - payments
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchedPaymentStatus'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PatchedPaymentStatus'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PatchedPaymentStatus'
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaymentStatus'
+          description: ''
+  /api/payments/create/:
+    post:
+      operationId: payments_create_create
+      tags:
+      - payments
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Payment'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/Payment'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/Payment'
+        required: true
+      security:
+      - jwtAuth: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Payment'
+          description: ''
+  /api/payments/webhook/:
+    post:
+      operationId: payments_webhook_create
+      tags:
+      - payments
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Payment'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/Payment'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/Payment'
+        required: true
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Payment'
+          description: ''
+  /api/projects/:
+    get:
+      operationId: projects_list
+      tags:
+      - projects
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Project'
+          description: ''
+    post:
+      operationId: projects_create
+      tags:
+      - projects
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Project'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/Project'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/Project'
+        required: true
+      security:
+      - jwtAuth: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Project'
+          description: ''
+  /api/projects/{id}/:
+    get:
+      operationId: projects_retrieve
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        required: true
+      tags:
+      - projects
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Project'
+          description: ''
+    put:
+      operationId: projects_update
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        required: true
+      tags:
+      - projects
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Project'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/Project'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/Project'
+        required: true
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Project'
+          description: ''
+    patch:
+      operationId: projects_partial_update
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        required: true
+      tags:
+      - projects
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchedProject'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PatchedProject'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PatchedProject'
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Project'
+          description: ''
+    delete:
+      operationId: projects_destroy
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        required: true
+      tags:
+      - projects
+      security:
+      - jwtAuth: []
+      responses:
+        '204':
+          description: No response body
+  /api/schema/:
+    get:
+      operationId: schema_retrieve
+      description: |-
+        OpenApi3 schema for this API. Format can be selected via content negotiation.
+
+        - YAML: application/vnd.oai.openapi
+        - JSON: application/vnd.oai.openapi+json
+      parameters:
+      - in: query
+        name: format
+        schema:
+          type: string
+          enum:
+          - json
+          - yaml
+      - in: query
+        name: lang
+        schema:
+          type: string
+          enum:
+          - af
+          - ar
+          - ar-dz
+          - ast
+          - az
+          - be
+          - bg
+          - bn
+          - br
+          - bs
+          - ca
+          - ckb
+          - cs
+          - cy
+          - da
+          - de
+          - dsb
+          - el
+          - en
+          - en-au
+          - en-gb
+          - eo
+          - es
+          - es-ar
+          - es-co
+          - es-mx
+          - es-ni
+          - es-ve
+          - et
+          - eu
+          - fa
+          - fi
+          - fr
+          - fy
+          - ga
+          - gd
+          - gl
+          - he
+          - hi
+          - hr
+          - hsb
+          - hu
+          - hy
+          - ia
+          - id
+          - ig
+          - io
+          - is
+          - it
+          - ja
+          - ka
+          - kab
+          - kk
+          - km
+          - kn
+          - ko
+          - ky
+          - lb
+          - lt
+          - lv
+          - mk
+          - ml
+          - mn
+          - mr
+          - ms
+          - my
+          - nb
+          - ne
+          - nl
+          - nn
+          - os
+          - pa
+          - pl
+          - pt
+          - pt-br
+          - ro
+          - ru
+          - sk
+          - sl
+          - sq
+          - sr
+          - sr-latn
+          - sv
+          - sw
+          - ta
+          - te
+          - tg
+          - th
+          - tk
+          - tr
+          - tt
+          - udm
+          - ug
+          - uk
+          - ur
+          - uz
+          - vi
+          - zh-hans
+          - zh-hant
+      tags:
+      - schema
+      security:
+      - jwtAuth: []
+      - {}
+      responses:
+        '200':
+          content:
+            application/vnd.oai.openapi:
+              schema:
+                type: object
+                additionalProperties: {}
+            application/yaml:
+              schema:
+                type: object
+                additionalProperties: {}
+            application/vnd.oai.openapi+json:
+              schema:
+                type: object
+                additionalProperties: {}
+            application/json:
+              schema:
+                type: object
+                additionalProperties: {}
+          description: ''
+  /api/subscriptions/plans/:
+    get:
+      operationId: subscriptions_plans_list
+      tags:
+      - subscriptions
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Plan'
+          description: ''
+    post:
+      operationId: subscriptions_plans_create
+      tags:
+      - subscriptions
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Plan'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/Plan'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/Plan'
+        required: true
+      security:
+      - jwtAuth: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Plan'
+          description: ''
+  /api/subscriptions/plans/{id}/:
+    get:
+      operationId: subscriptions_plans_retrieve
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        required: true
+      tags:
+      - subscriptions
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Plan'
+          description: ''
+    put:
+      operationId: subscriptions_plans_update
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        required: true
+      tags:
+      - subscriptions
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Plan'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/Plan'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/Plan'
+        required: true
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Plan'
+          description: ''
+    patch:
+      operationId: subscriptions_plans_partial_update
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        required: true
+      tags:
+      - subscriptions
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchedPlan'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PatchedPlan'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PatchedPlan'
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Plan'
+          description: ''
+    delete:
+      operationId: subscriptions_plans_destroy
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        required: true
+      tags:
+      - subscriptions
+      security:
+      - jwtAuth: []
+      responses:
+        '204':
+          description: No response body
+  /api/subscriptions/subscriptions/:
+    get:
+      operationId: subscriptions_subscriptions_list
+      tags:
+      - subscriptions
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Subscription'
+          description: ''
+  /api/subscriptions/subscriptions/{id}/:
+    get:
+      operationId: subscriptions_subscriptions_retrieve
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        required: true
+      tags:
+      - subscriptions
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Subscription'
+          description: ''
+  /api/subscriptions/subscriptions/subscribe/:
+    post:
+      operationId: subscriptions_subscriptions_subscribe_create
+      tags:
+      - subscriptions
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Subscribe'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/Subscribe'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/Subscribe'
+        required: true
+      security:
+      - jwtAuth: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Subscribe'
+          description: ''
+  /api/usage/current/:
+    get:
+      operationId: usage_current_retrieve
+      tags:
+      - usage
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UsageRecord'
+          description: ''
+components:
+  schemas:
+    BillingCycleEnum:
+      enum:
+      - monthly
+      - yearly
+      type: string
+      description: |-
+        * `monthly` - Monthly
+        * `yearly` - Yearly
+    GatewayEnum:
+      enum:
+      - stripe
+      - sslcommerz
+      - bkash
+      - nagad
+      type: string
+      description: |-
+        * `stripe` - Stripe
+        * `sslcommerz` - SSLCommerz
+        * `bkash` - bKash
+        * `nagad` - Nagad
+    Invoice:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        user:
+          type: integer
+          readOnly: true
+        subscription:
+          type: integer
+          nullable: true
+        payment:
+          type: integer
+          nullable: true
+        stripe_invoice_id:
+          type: string
+          readOnly: true
+          nullable: true
+        amount:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,8}(?:\.\d{0,2})?$
+        currency:
+          type: string
+          maxLength: 10
+        status:
+          allOf:
+          - $ref: '#/components/schemas/InvoiceStatusEnum'
+          readOnly: true
+        invoice_date:
+          type: string
+          format: date-time
+          readOnly: true
+        due_date:
+          type: string
+          format: date-time
+          nullable: true
+        paid_at:
+          type: string
+          format: date-time
+          readOnly: true
+          nullable: true
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+        updated_at:
+          type: string
+          format: date-time
+          readOnly: true
+      required:
+      - amount
+      - created_at
+      - id
+      - invoice_date
+      - paid_at
+      - status
+      - stripe_invoice_id
+      - updated_at
+      - user
+    InvoiceStatusEnum:
+      enum:
+      - draft
+      - paid
+      - open
+      - void
+      - uncollectible
+      type: string
+      description: |-
+        * `draft` - Draft
+        * `paid` - Paid
+        * `open` - Open
+        * `void` - Void
+        * `uncollectible` - Uncollectible
+    PatchedPaymentStatus:
+      type: object
+      properties:
+        status:
+          $ref: '#/components/schemas/PaymentStatusEnum'
+    PatchedPlan:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        name:
+          type: string
+          maxLength: 100
+        price:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,8}(?:\.\d{0,2})?$
+        billing_cycle:
+          $ref: '#/components/schemas/BillingCycleEnum'
+        max_projects:
+          type: integer
+          maximum: 9223372036854775807
+          minimum: 0
+          format: int64
+        max_api_requests:
+          type: integer
+          maximum: 9223372036854775807
+          minimum: 0
+          format: int64
+        storage_limit_gb:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,8}(?:\.\d{0,2})?$
+        is_active:
+          type: boolean
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+        updated_at:
+          type: string
+          format: date-time
+          readOnly: true
+    PatchedProject:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        name:
+          type: string
+          maxLength: 150
+        description:
+          type: string
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+        updated_at:
+          type: string
+          format: date-time
+          readOnly: true
+    PatchedUserUpdate:
+      type: object
+      properties:
+        bio:
+          type: string
+        image:
+          type: string
+          format: uri
+          nullable: true
+    Payment:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        user:
+          type: integer
+          readOnly: true
+        subscription:
+          type: integer
+          nullable: true
+        gateway:
+          $ref: '#/components/schemas/GatewayEnum'
+        transaction_id:
+          type: string
+          readOnly: true
+          nullable: true
+        stripe_payment_intent_id:
+          type: string
+          readOnly: true
+          nullable: true
+        amount:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,8}(?:\.\d{0,2})?$
+        currency:
+          type: string
+          maxLength: 10
+        status:
+          allOf:
+          - $ref: '#/components/schemas/PaymentStatusEnum'
+          readOnly: true
+        paid_at:
+          type: string
+          format: date-time
+          readOnly: true
+          nullable: true
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+        updated_at:
+          type: string
+          format: date-time
+          readOnly: true
+      required:
+      - amount
+      - created_at
+      - id
+      - paid_at
+      - status
+      - stripe_payment_intent_id
+      - transaction_id
+      - updated_at
+      - user
+    PaymentStatus:
+      type: object
+      properties:
+        status:
+          $ref: '#/components/schemas/PaymentStatusEnum'
+    PaymentStatusEnum:
+      enum:
+      - pending
+      - successful
+      - failed
+      - refunded
+      type: string
+      description: |-
+        * `pending` - Pending
+        * `successful` - Successful
+        * `failed` - Failed
+        * `refunded` - Refunded
+    Plan:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        name:
+          type: string
+          maxLength: 100
+        price:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,8}(?:\.\d{0,2})?$
+        billing_cycle:
+          $ref: '#/components/schemas/BillingCycleEnum'
+        max_projects:
+          type: integer
+          maximum: 9223372036854775807
+          minimum: 0
+          format: int64
+        max_api_requests:
+          type: integer
+          maximum: 9223372036854775807
+          minimum: 0
+          format: int64
+        storage_limit_gb:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,8}(?:\.\d{0,2})?$
+        is_active:
+          type: boolean
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+        updated_at:
+          type: string
+          format: date-time
+          readOnly: true
+      required:
+      - billing_cycle
+      - created_at
+      - id
+      - name
+      - price
+      - updated_at
+    Project:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        name:
+          type: string
+          maxLength: 150
+        description:
+          type: string
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+        updated_at:
+          type: string
+          format: date-time
+          readOnly: true
+      required:
+      - created_at
+      - id
+      - name
+      - updated_at
+    ProjectLimitStatusEnum:
+      enum:
+      - NO_SUBSCRIPTION
+      - LIMIT_REACHED
+      - AVAILABLE
+      type: string
+      description: |-
+        * `NO_SUBSCRIPTION` - NO_SUBSCRIPTION
+        * `LIMIT_REACHED` - LIMIT_REACHED
+        * `AVAILABLE` - AVAILABLE
+    Subscribe:
+      type: object
+      properties:
+        plan_id:
+          type: integer
+      required:
+      - plan_id
+    Subscription:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        plan:
+          allOf:
+          - $ref: '#/components/schemas/Plan'
+          readOnly: true
+        status:
+          $ref: '#/components/schemas/SubscriptionStatusEnum'
+        stripe_subscription_id:
+          type: string
+          readOnly: true
+          nullable: true
+        start_date:
+          type: string
+          format: date-time
+          readOnly: true
+        end_date:
+          type: string
+          format: date-time
+          readOnly: true
+          nullable: true
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+        updated_at:
+          type: string
+          format: date-time
+          readOnly: true
+      required:
+      - created_at
+      - end_date
+      - id
+      - plan
+      - start_date
+      - stripe_subscription_id
+      - updated_at
+    SubscriptionStatusEnum:
+      enum:
+      - active
+      - canceled
+      - past_due
+      - expired
+      type: string
+      description: |-
+        * `active` - Active
+        * `canceled` - Canceled
+        * `past_due` - Past Due
+        * `expired` - Expired
+    TokenRefresh:
+      type: object
+      properties:
+        access:
+          type: string
+          readOnly: true
+        refresh:
+          type: string
+          writeOnly: true
+      required:
+      - access
+      - refresh
+    UsageRecord:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        user:
+          type: integer
+          readOnly: true
+        plan:
+          type: integer
+          readOnly: true
+          nullable: true
+        current_plan:
+          type: string
+          nullable: true
+          readOnly: true
+        api_requests:
+          type: integer
+          readOnly: true
+        api_requests_limit:
+          type: integer
+          readOnly: true
+        api_requests_remaining:
+          type: integer
+          readOnly: true
+        api_requests_percentage:
+          type: number
+          format: double
+          readOnly: true
+        projects_count:
+          type: integer
+          readOnly: true
+        projects_limit:
+          type: integer
+          readOnly: true
+        projects_remaining:
+          type: integer
+          readOnly: true
+        projects_percentage:
+          type: number
+          format: double
+          readOnly: true
+        storage_used_gb:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,8}(?:\.\d{0,2})?$
+          readOnly: true
+        storage_limit_gb:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,8}(?:\.\d{0,2})?$
+          readOnly: true
+        storage_remaining_gb:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,8}(?:\.\d{0,2})?$
+          readOnly: true
+        storage_percentage:
+          type: number
+          format: double
+          readOnly: true
+        api_limit_status:
+          allOf:
+          - $ref: '#/components/schemas/ProjectLimitStatusEnum'
+          readOnly: true
+        project_limit_status:
+          allOf:
+          - $ref: '#/components/schemas/ProjectLimitStatusEnum'
+          readOnly: true
+        storage_limit_status:
+          allOf:
+          - $ref: '#/components/schemas/ProjectLimitStatusEnum'
+          readOnly: true
+        period_start:
+          type: string
+          format: date-time
+          readOnly: true
+        period_end:
+          type: string
+          format: date-time
+          readOnly: true
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+        updated_at:
+          type: string
+          format: date-time
+          readOnly: true
+      required:
+      - api_limit_status
+      - api_requests
+      - api_requests_limit
+      - api_requests_percentage
+      - api_requests_remaining
+      - created_at
+      - current_plan
+      - id
+      - period_end
+      - period_start
+      - plan
+      - project_limit_status
+      - projects_count
+      - projects_limit
+      - projects_percentage
+      - projects_remaining
+      - storage_limit_gb
+      - storage_limit_status
+      - storage_percentage
+      - storage_remaining_gb
+      - storage_used_gb
+      - updated_at
+      - user
+    User:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        username:
+          type: string
+          description: Required. 150 characters or fewer. Letters, digits and @/./+/-/_
+            only.
+          pattern: ^[\w.@+-]+$
+          maxLength: 150
+        email:
+          title: Email address
+          oneOf:
+          - type: string
+            format: email
+            maxLength: 254
+          - type: string
+            maxLength: 0
+        password:
+          type: string
+          writeOnly: true
+          maxLength: 128
+        bio:
+          type: string
+        image:
+          type: string
+          format: uri
+          nullable: true
+      required:
+      - id
+      - password
+      - username
+    UserLogin:
+      type: object
+      properties:
+        email:
+          type: string
+          format: email
+        password:
+          type: string
+      required:
+      - email
+      - password
+    UserUpdate:
+      type: object
+      properties:
+        bio:
+          type: string
+        image:
+          type: string
+          format: uri
+          nullable: true
+  securitySchemes:
+    jwtAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
