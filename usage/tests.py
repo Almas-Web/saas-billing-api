@@ -76,153 +76,71 @@ class UsageTests(TestCase):
     def test_authenticated_user_can_view_current_usage(self):
         self.client.force_authenticate(user=self.user)
 
-        response = self.client.get(
-            reverse("current-usage")
-        )
+        response = self.client.get(reverse("current-usage"))
 
-        self.assertEqual(
-            response.status_code,
-            status.HTTP_200_OK,
-        )
-
-        self.assertEqual(
-            response.data["user"],
-            self.user.id,
-        )
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data["user"], self.user.id)
 
     def test_unauthenticated_user_cannot_view_current_usage(self):
-        response = self.client.get(
-            reverse("current-usage")
-        )
+        response = self.client.get(reverse("current-usage"))
 
-        self.assertEqual(
-            response.status_code,
-            status.HTTP_401_UNAUTHORIZED,
-        )
+        self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
 
     def test_current_usage_creates_record_when_missing(self):
-        UsageRecord.objects.filter(
-            user=self.user
-        ).delete()
+        UsageRecord.objects.filter(user=self.user).delete()
 
-        usage = get_current_usage(
-            self.user
-        )
+        usage = get_current_usage(self.user)
 
-        self.assertIsNotNone(
-            usage
-        )
-
-        self.assertEqual(
-            usage.user,
-            self.user,
-        )
-
-        self.assertEqual(
-            usage.plan,
-            self.plan,
-        )
-
-        self.assertEqual(
-            usage.api_requests,
-            0,
-        )
-
-        self.assertEqual(
-            usage.projects_count,
-            0,
-        )
+        self.assertIsNotNone(usage)
+        self.assertEqual(usage.user, self.user)
+        self.assertEqual(usage.plan, self.plan)
+        self.assertEqual(usage.api_requests, 0)
+        self.assertEqual(usage.projects_count, 0)
 
     def test_current_plan_is_returned(self):
-        self.client.force_authenticate(
-            user=self.user
-        )
+        self.client.force_authenticate(user=self.user)
 
-        response = self.client.get(
-            reverse("current-usage")
-        )
+        response = self.client.get(reverse("current-usage"))
 
-        self.assertEqual(
-            response.data["current_plan"],
-            "Basic",
-        )
+        self.assertEqual(response.data["current_plan"], "Basic")
 
     def test_api_usage_limit(self):
-        self.client.force_authenticate(
-            user=self.user
-        )
+        self.client.force_authenticate(user=self.user)
 
-        response = self.client.get(
-            reverse("current-usage")
-        )
+        response = self.client.get(reverse("current-usage"))
 
-        self.assertEqual(
-            response.data["api_requests"],
-            26,
-        )
-
-        self.assertEqual(
-            response.data["api_requests_limit"],
-            100,
-        )
+        self.assertEqual(response.data["api_requests"], 26)
+        self.assertEqual(response.data["api_requests_limit"], 100)
 
     def test_api_requests_remaining(self):
-        self.client.force_authenticate(
-            user=self.user
-        )
+        self.client.force_authenticate(user=self.user)
 
-        response = self.client.get(
-            reverse("current-usage")
-        )
+        response = self.client.get(reverse("current-usage"))
 
-        self.assertEqual(
-            response.data["api_requests_remaining"],
-            74,
-        )
+        self.assertEqual(response.data["api_requests_remaining"], 74)
 
     def test_api_requests_percentage(self):
-        self.client.force_authenticate(
-            user=self.user
-        )
+        self.client.force_authenticate(user=self.user)
 
-        response = self.client.get(
-            reverse("current-usage")
-        )
+        response = self.client.get(reverse("current-usage"))
 
         self.assertEqual(
-            Decimal(
-                str(
-                    response.data[
-                        "api_requests_percentage"
-                    ]
-                )
-            ),
+            Decimal(str(response.data["api_requests_percentage"])),
             Decimal("26.00"),
         )
 
     def test_api_limit_status_available(self):
-        self.client.force_authenticate(
-            user=self.user
-        )
+        self.client.force_authenticate(user=self.user)
 
-        response = self.client.get(
-            reverse("current-usage")
-        )
+        response = self.client.get(reverse("current-usage"))
 
-        self.assertEqual(
-            response.data["api_limit_status"],
-            "AVAILABLE",
-        )
+        self.assertEqual(response.data["api_limit_status"], "AVAILABLE")
 
     def test_api_limit_service(self):
         self.usage.api_requests = 99
         self.usage.save()
 
-        self.assertTrue(
-            check_api_request_limit(
-                self.user
-            )
-        )
+        self.assertTrue(check_api_request_limit(self.user))
 
     def test_api_limit_service_reached(self):
         self.usage.api_requests = 100
@@ -230,23 +148,13 @@ class UsageTests(TestCase):
 
         from rest_framework.exceptions import PermissionDenied
 
-        with self.assertRaises(
-            PermissionDenied
-        ):
-            check_api_request_limit(
-                self.user
-            )
+        with self.assertRaises(PermissionDenied):
+            check_api_request_limit(self.user)
 
     def test_increment_api_requests(self):
-        usage = increment_api_requests(
-            self.user,
-            amount=5,
-        )
+        usage = increment_api_requests(self.user, amount=5)
 
-        self.assertEqual(
-            usage.api_requests,
-            30,
-        )
+        self.assertEqual(usage.api_requests, 30)
 
     def test_projects_limit_uses_actual_project_count(self):
         Project.objects.create(
@@ -254,23 +162,12 @@ class UsageTests(TestCase):
             name="Project One",
         )
 
-        self.client.force_authenticate(
-            user=self.user
-        )
+        self.client.force_authenticate(user=self.user)
 
-        response = self.client.get(
-            reverse("current-usage")
-        )
+        response = self.client.get(reverse("current-usage"))
 
-        self.assertEqual(
-            response.data["projects_count"],
-            1,
-        )
-
-        self.assertEqual(
-            response.data["projects_limit"],
-            3,
-        )
+        self.assertEqual(response.data["projects_count"], 1)
+        self.assertEqual(response.data["projects_limit"], 3)
 
     def test_projects_remaining(self):
         Project.objects.create(
@@ -278,18 +175,11 @@ class UsageTests(TestCase):
             name="Project One",
         )
 
-        self.client.force_authenticate(
-            user=self.user
-        )
+        self.client.force_authenticate(user=self.user)
 
-        response = self.client.get(
-            reverse("current-usage")
-        )
+        response = self.client.get(reverse("current-usage"))
 
-        self.assertEqual(
-            response.data["projects_remaining"],
-            2,
-        )
+        self.assertEqual(response.data["projects_remaining"], 2)
 
     def test_projects_percentage(self):
         Project.objects.create(
@@ -297,22 +187,12 @@ class UsageTests(TestCase):
             name="Project One",
         )
 
-        self.client.force_authenticate(
-            user=self.user
-        )
+        self.client.force_authenticate(user=self.user)
 
-        response = self.client.get(
-            reverse("current-usage")
-        )
+        response = self.client.get(reverse("current-usage"))
 
         self.assertEqual(
-            Decimal(
-                str(
-                    response.data[
-                        "projects_percentage"
-                    ]
-                )
-            ),
+            Decimal(str(response.data["projects_percentage"])),
             Decimal("33.33"),
         )
 
@@ -322,18 +202,12 @@ class UsageTests(TestCase):
             name="Project One",
         )
 
-        self.client.force_authenticate(
-            user=self.user
-        )
+        self.client.force_authenticate(user=self.user)
 
-        response = self.client.get(
-            reverse("current-usage")
-        )
+        response = self.client.get(reverse("current-usage"))
 
         self.assertEqual(
-            response.data[
-                "project_limit_status"
-            ],
+            response.data["project_limit_status"],
             "AVAILABLE",
         )
 
@@ -343,11 +217,7 @@ class UsageTests(TestCase):
             name="Project One",
         )
 
-        self.assertTrue(
-            check_project_limit(
-                self.user
-            )
-        )
+        self.assertTrue(check_project_limit(self.user))
 
     def test_project_limit_service_reached(self):
         for number in range(3):
@@ -358,34 +228,18 @@ class UsageTests(TestCase):
 
         from rest_framework.exceptions import PermissionDenied
 
-        with self.assertRaises(
-            PermissionDenied
-        ):
-            check_project_limit(
-                self.user
-            )
+        with self.assertRaises(PermissionDenied):
+            check_project_limit(self.user)
 
     def test_update_projects_count(self):
-        usage = update_projects_count(
-            self.user,
-            2,
-        )
+        usage = update_projects_count(self.user, 2)
 
-        self.assertEqual(
-            usage.projects_count,
-            2,
-        )
+        self.assertEqual(usage.projects_count, 2)
 
     def test_increment_projects_count(self):
-        usage = increment_projects_count(
-            self.user,
-            amount=2,
-        )
+        usage = increment_projects_count(self.user, amount=2)
 
-        self.assertEqual(
-            usage.projects_count,
-            2,
-        )
+        self.assertEqual(usage.projects_count, 2)
 
     def test_decrement_projects_count(self):
         Project.objects.create(
@@ -393,104 +247,54 @@ class UsageTests(TestCase):
             name="Project One",
         )
 
-        get_current_usage(
-            self.user
-        )
+        get_current_usage(self.user)
 
-        usage = decrement_projects_count(
-            self.user,
-            amount=1,
-        )
+        usage = decrement_projects_count(self.user, amount=1)
 
-        self.assertEqual(
-            usage.projects_count,
-            0,
-        )
+        self.assertEqual(usage.projects_count, 0)
 
     def test_decrement_projects_count_does_not_go_negative(self):
-        usage = decrement_projects_count(
-            self.user,
-            amount=5,
-        )
+        usage = decrement_projects_count(self.user, amount=5)
 
-        self.assertEqual(
-            usage.projects_count,
-            0,
-        )
+        self.assertEqual(usage.projects_count, 0)
 
     def test_storage_limit(self):
-        self.client.force_authenticate(
-            user=self.user
-        )
+        self.client.force_authenticate(user=self.user)
 
-        response = self.client.get(
-            reverse("current-usage")
-        )
+        response = self.client.get(reverse("current-usage"))
 
         self.assertEqual(
-            Decimal(
-                str(
-                    response.data[
-                        "storage_limit_gb"
-                    ]
-                )
-            ),
+            Decimal(str(response.data["storage_limit_gb"])),
             Decimal("1.00"),
         )
 
     def test_storage_remaining(self):
-        self.client.force_authenticate(
-            user=self.user
-        )
+        self.client.force_authenticate(user=self.user)
 
-        response = self.client.get(
-            reverse("current-usage")
-        )
+        response = self.client.get(reverse("current-usage"))
 
         self.assertEqual(
-            Decimal(
-                str(
-                    response.data[
-                        "storage_remaining_gb"
-                    ]
-                )
-            ),
+            Decimal(str(response.data["storage_remaining_gb"])),
             Decimal("0.75"),
         )
 
     def test_storage_percentage(self):
-        self.client.force_authenticate(
-            user=self.user
-        )
+        self.client.force_authenticate(user=self.user)
 
-        response = self.client.get(
-            reverse("current-usage")
-        )
+        response = self.client.get(reverse("current-usage"))
 
         self.assertEqual(
-            Decimal(
-                str(
-                    response.data[
-                        "storage_percentage"
-                    ]
-                )
-            ),
+            Decimal(str(response.data["storage_percentage"])),
             Decimal("25.00"),
         )
 
     def test_storage_limit_status_available(self):
-        self.client.force_authenticate(
-            user=self.user
-        )
+        self.client.force_authenticate(user=self.user)
 
-        response = self.client.get(
-            reverse("current-usage")
-        )
+        response = self.client.get(reverse("current-usage"))
 
         self.assertEqual(
-            response.data[
-                "storage_limit_status"
-            ],
+            response.data["storage_limit_status"],
             "AVAILABLE",
         )
 
@@ -505,9 +309,7 @@ class UsageTests(TestCase):
     def test_storage_limit_service_reached(self):
         from rest_framework.exceptions import PermissionDenied
 
-        with self.assertRaises(
-            PermissionDenied
-        ):
+        with self.assertRaises(PermissionDenied):
             check_storage_limit(
                 self.user,
                 Decimal("0.80"),
@@ -538,66 +340,38 @@ class UsageTests(TestCase):
     def test_usage_percentage_does_not_exceed_100(self):
         self.usage.api_requests = 150
         self.usage.projects_count = 5
-        self.usage.storage_used_gb = Decimal(
-            "2.00"
-        )
+        self.usage.storage_used_gb = Decimal("2.00")
         self.usage.save()
 
         self.usage.refresh_from_db()
 
-        serializer = UsageRecordSerializer(
-            self.usage
-        )
-
+        serializer = UsageRecordSerializer(self.usage)
         data = serializer.data
 
         self.assertEqual(
-            Decimal(
-                str(
-                    data[
-                        "api_requests_percentage"
-                    ]
-                )
-            ),
+            Decimal(str(data["api_requests_percentage"])),
             Decimal("100.00"),
         )
 
         self.assertEqual(
-            Decimal(
-                str(
-                    data[
-                        "projects_percentage"
-                    ]
-                )
-            ),
+            Decimal(str(data["projects_percentage"])),
             Decimal("100.00"),
         )
 
         self.assertEqual(
-            Decimal(
-                str(
-                    data[
-                        "storage_percentage"
-                    ]
-                )
-            ),
+            Decimal(str(data["storage_percentage"])),
             Decimal("100.00"),
         )
 
     def test_remaining_usage_does_not_become_negative(self):
         self.usage.api_requests = 150
         self.usage.projects_count = 5
-        self.usage.storage_used_gb = Decimal(
-            "2.00"
-        )
+        self.usage.storage_used_gb = Decimal("2.00")
         self.usage.save()
 
         self.usage.refresh_from_db()
 
-        serializer = UsageRecordSerializer(
-            self.usage
-        )
-
+        serializer = UsageRecordSerializer(self.usage)
         data = serializer.data
 
         self.assertEqual(
@@ -611,44 +385,23 @@ class UsageTests(TestCase):
         )
 
         self.assertEqual(
-            Decimal(
-                str(
-                    data[
-                        "storage_remaining_gb"
-                    ]
-                )
-            ),
+            Decimal(str(data["storage_remaining_gb"])),
             Decimal("0.00"),
         )
 
     def test_usage_period_is_returned(self):
-        self.client.force_authenticate(
-            user=self.user
-        )
+        self.client.force_authenticate(user=self.user)
 
-        response = self.client.get(
-            reverse("current-usage")
-        )
+        response = self.client.get(reverse("current-usage"))
 
-        self.assertIsNotNone(
-            response.data["period_start"]
-        )
-
-        self.assertIsNotNone(
-            response.data["period_end"]
-        )
+        self.assertIsNotNone(response.data["period_start"])
+        self.assertIsNotNone(response.data["period_end"])
 
     def test_usage_belongs_to_correct_user(self):
-        self.assertEqual(
-            self.usage.user,
-            self.user,
-        )
+        self.assertEqual(self.usage.user, self.user)
 
     def test_usage_is_connected_to_plan(self):
-        self.assertEqual(
-            self.usage.plan,
-            self.plan,
-        )
+        self.assertEqual(self.usage.plan, self.plan)
 
     def test_usage_can_have_no_plan(self):
         usage = UsageRecord.objects.create(
@@ -656,42 +409,20 @@ class UsageTests(TestCase):
             plan=None,
             api_requests=10,
             projects_count=0,
-            storage_used_gb=Decimal(
-                "0.10"
-            ),
+            storage_used_gb=Decimal("0.10"),
             period_start=timezone.now(),
-            period_end=timezone.now()
-            + timedelta(days=30),
+            period_end=timezone.now() + timedelta(days=30),
         )
 
-        serializer = UsageRecordSerializer(
-            usage
-        )
-
+        serializer = UsageRecordSerializer(usage)
         data = serializer.data
 
-        self.assertIsNone(
-            data["current_plan"]
-        )
+        self.assertIsNone(data["current_plan"])
+        self.assertEqual(data["api_requests_limit"], 0)
+        self.assertEqual(data["projects_limit"], 0)
 
         self.assertEqual(
-            data["api_requests_limit"],
-            0,
-        )
-
-        self.assertEqual(
-            data["projects_limit"],
-            0,
-        )
-
-        self.assertEqual(
-            Decimal(
-                str(
-                    data[
-                        "storage_limit_gb"
-                    ]
-                )
-            ),
+            Decimal(str(data["storage_limit_gb"])),
             Decimal("0.00"),
         )
 
@@ -708,4 +439,28 @@ class UsageTests(TestCase):
         self.assertEqual(
             data["storage_limit_status"],
             "NO_SUBSCRIPTION",
+        )
+
+    def test_authenticated_user_is_allowed_under_rate_limit(self):
+        self.client.force_authenticate(user=self.user)
+
+        for _ in range(60):
+            response = self.client.get(reverse("current-usage"))
+
+            self.assertNotEqual(
+                response.status_code,
+                status.HTTP_429_TOO_MANY_REQUESTS,
+            )
+
+    def test_authenticated_user_is_throttled_after_rate_limit(self):
+        self.client.force_authenticate(user=self.user)
+
+        for _ in range(60):
+            self.client.get(reverse("current-usage"))
+
+        response = self.client.get(reverse("current-usage"))
+
+        self.assertEqual(
+            response.status_code,
+            status.HTTP_429_TOO_MANY_REQUESTS,
         )

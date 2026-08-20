@@ -16,3 +16,16 @@ class UsageRecord(models.Model):
 
     def __str__(self):
         return f"{self.user.username} - {self.period_start.date()}"
+
+class APIRequestLog(models.Model):
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="api_request_logs",
+    )
+    path = models.CharField(max_length=255)
+    method = models.CharField(max_length=10)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"{self.user} - {self.method} {self.path}"
