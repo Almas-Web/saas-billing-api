@@ -10,3 +10,6 @@ stripe==15.5.0
 reportlab
 drf-spectacular
 django-cors-headers==4.9.0
+psycopg==3.3.4
+psycopg-binary==3.3.4
+python-dotenv

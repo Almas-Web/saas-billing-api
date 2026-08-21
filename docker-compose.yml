@@ -1,0 +1,30 @@
+services:
+  db:
+    image: postgres:16
+    container_name: saas_billing_db
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: saas_billing
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    ports:
+      - "5439:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+  web:
+    build: .
+    container_name: saas_billing_web
+    restart: unless-stopped
+    command: python manage.py runserver 0.0.0.0:8000
+    ports:
+      - "8001:8000"
+    environment:
+      SECRET_KEY: ${SECRET_KEY}
+      DB_HOST: db
+      DB_PORT: 5432
+    depends_on:
+      - db
+
+volumes:
+  postgres_data:
