@@ -9,13 +9,28 @@ load_dotenv()
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
+
+# ============================================================
+# Core settings
+# ============================================================
+
 SECRET_KEY = os.getenv("SECRET_KEY")
+
 if not SECRET_KEY:
     raise ImproperlyConfigured("SECRET_KEY environment variable is required.")
 
-DEBUG = os.getenv("DEBUG", "True").lower() == "true"
+DEBUG = os.getenv("DEBUG", "False").lower() == "true"
 
-ALLOWED_HOSTS = [host.strip() for host in os.getenv("ALLOWED_HOSTS", "").split(",") if host.strip()]
+ALLOWED_HOSTS = [
+    host.strip()
+    for host in os.getenv("ALLOWED_HOSTS", "").split(",")
+    if host.strip()
+]
+
+
+# ============================================================
+# Applications
+# ============================================================
 
 INSTALLED_APPS = [
     "django.contrib.admin",
@@ -36,6 +51,11 @@ INSTALLED_APPS = [
     "rest_framework_simplejwt",
 ]
 
+
+# ============================================================
+# Middleware
+# ============================================================
+
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
     "whitenoise.middleware.WhiteNoiseMiddleware",
@@ -48,7 +68,19 @@ MIDDLEWARE = [
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
 ]
 
+
+# ============================================================
+# URL / WSGI
+# ============================================================
+
 ROOT_URLCONF = "src.urls"
+
+WSGI_APPLICATION = "src.wsgi.application"
+
+
+# ============================================================
+# Templates
+# ============================================================
 
 TEMPLATES = [
     {
@@ -66,7 +98,10 @@ TEMPLATES = [
     },
 ]
 
-WSGI_APPLICATION = "src.wsgi.application"
+
+# ============================================================
+# Database
+# ============================================================
 
 DATABASES = {
     "default": {
@@ -75,24 +110,62 @@ DATABASES = {
         "USER": os.getenv("DB_USER", "postgres"),
         "PASSWORD": os.getenv("DB_PASSWORD", "postgres"),
         "HOST": os.getenv("DB_HOST", "127.0.0.1"),
-        "PORT": os.getenv("DB_PORT", "5439"),
+        "PORT": os.getenv("DB_PORT", "5432"),
     }
 }
 
 
+# ============================================================
+# Password validation
+# ============================================================
+
 AUTH_PASSWORD_VALIDATORS = [
-    {"NAME": "django.contrib.auth.password_validation.UserAttributeSimilarityValidator"},
-    {"NAME": "django.contrib.auth.password_validation.MinimumLengthValidator"},
-    {"NAME": "django.contrib.auth.password_validation.CommonPasswordValidator"},
-    {"NAME": "django.contrib.auth.password_validation.NumericPasswordValidator"},
+    {
+        "NAME": (
+            "django.contrib.auth.password_validation."
+            "UserAttributeSimilarityValidator"
+        ),
+    },
+    {
+        "NAME": (
+            "django.contrib.auth.password_validation."
+            "MinimumLengthValidator"
+        ),
+    },
+    {
+        "NAME": (
+            "django.contrib.auth.password_validation."
+            "CommonPasswordValidator"
+        ),
+    },
+    {
+        "NAME": (
+            "django.contrib.auth.password_validation."
+            "NumericPasswordValidator"
+        ),
+    },
 ]
 
+
+# ============================================================
+# Internationalization
+# ============================================================
+
 LANGUAGE_CODE = "en-us"
+
 TIME_ZONE = "UTC"
+
 USE_I18N = True
+
 USE_TZ = True
 
-STATIC_URL = "static/"
+
+# ============================================================
+# Static files
+# ============================================================
+
+STATIC_URL = "/static/"
+
 STATIC_ROOT = os.path.join(BASE_DIR, "staticfiles")
 
 STORAGES = {
@@ -100,26 +173,60 @@ STORAGES = {
         "BACKEND": "django.core.files.storage.FileSystemStorage",
     },
     "staticfiles": {
-        "BACKEND": "whitenoise.storage.CompressedManifestStaticFilesStorage",
+        "BACKEND": "whitenoise.storage.CompressedStaticFilesStorage",
     },
 }
 
+
+# ============================================================
+# Media files
+# ============================================================
+
 MEDIA_URL = "/media/"
+
 MEDIA_ROOT = os.path.join(BASE_DIR, "media")
 
+
+# ============================================================
+# Django defaults
+# ============================================================
+
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
+
 AUTH_USER_MODEL = "account.CustomUser"
 
+
+# ============================================================
+# Email
+# ============================================================
+
 EMAIL_BACKEND = "django.core.mail.backends.smtp.EmailBackend"
+
 EMAIL_HOST = "smtp.gmail.com"
+
 EMAIL_PORT = 587
+
 EMAIL_USE_TLS = True
+
 EMAIL_HOST_USER = os.getenv("EMAIL_HOST_USER")
+
 EMAIL_HOST_PASSWORD = os.getenv("EMAIL_HOST_PASSWORD")
 
+
+# ============================================================
+# Stripe
+# ============================================================
+
 STRIPE_SECRET_KEY = os.getenv("STRIPE_SECRET_KEY")
+
 STRIPE_PUBLISHABLE_KEY = os.getenv("STRIPE_PUBLISHABLE_KEY")
+
 STRIPE_WEBHOOK_SECRET = os.getenv("STRIPE_WEBHOOK_SECRET")
+
+
+# ============================================================
+# Django REST Framework
+# ============================================================
 
 REST_FRAMEWORK = {
     "DEFAULT_AUTHENTICATION_CLASSES": (
@@ -131,10 +238,20 @@ REST_FRAMEWORK = {
     "DEFAULT_SCHEMA_CLASS": "drf_spectacular.openapi.AutoSchema",
 }
 
+
+# ============================================================
+# JWT
+# ============================================================
+
 SIMPLE_JWT = {
     "ACCESS_TOKEN_LIFETIME": timedelta(minutes=60),
     "REFRESH_TOKEN_LIFETIME": timedelta(days=1),
 }
+
+
+# ============================================================
+# API Documentation
+# ============================================================
 
 SPECTACULAR_SETTINGS = {
     "TITLE": "SaaS Billing API",
@@ -142,24 +259,64 @@ SPECTACULAR_SETTINGS = {
     "VERSION": "1.0.0",
     "ENUM_NAME_OVERRIDES": {
         "PaymentStatusEnum": "payments.models.Payment.STATUS_CHOICES",
-        "ProjectLimitStatusEnum": ["NO_SUBSCRIPTION", "LIMIT_REACHED", "AVAILABLE"],
+        "ProjectLimitStatusEnum": [
+            "NO_SUBSCRIPTION",
+            "LIMIT_REACHED",
+            "AVAILABLE",
+        ],
     },
 }
 
-CSRF_TRUSTED_ORIGINS = [origin.strip() for origin in os.getenv("CSRF_TRUSTED_ORIGINS", "").split(",") if origin.strip()]
+
+# ============================================================
+# CSRF
+# ============================================================
+
+CSRF_TRUSTED_ORIGINS = [
+    origin.strip()
+    for origin in os.getenv("CSRF_TRUSTED_ORIGINS", "").split(",")
+    if origin.strip()
+]
+
+
+# ============================================================
+# Production security
+# ============================================================
 
 if not DEBUG:
     SECURE_SSL_REDIRECT = True
+
     SESSION_COOKIE_SECURE = True
+
     CSRF_COOKIE_SECURE = True
+
     SECURE_HSTS_SECONDS = 31536000
+
     SECURE_HSTS_INCLUDE_SUBDOMAINS = True
+
     SECURE_HSTS_PRELOAD = True
+
     SECURE_CONTENT_TYPE_NOSNIFF = True
+
     SECURE_REFERRER_POLICY = "strict-origin-when-cross-origin"
+
     X_FRAME_OPTIONS = "DENY"
 
-CORS_ALLOWED_ORIGINS = [origin.strip() for origin in os.getenv("CORS_ALLOWED_ORIGINS", "").split(",") if origin.strip()]  
+
+# ============================================================
+# CORS
+# ============================================================
+
+CORS_ALLOWED_ORIGINS = [
+    origin.strip()
+    for origin in os.getenv("CORS_ALLOWED_ORIGINS", "").split(",")
+    if origin.strip()
+]
+
+
+# ============================================================
+# Logging
+# ============================================================
 
 LOGGING = {
     "version": 1,
