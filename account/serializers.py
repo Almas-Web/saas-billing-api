@@ -1,8 +1,9 @@
+import os
+import resend
 from django.utils.crypto import get_random_string
 from rest_framework import serializers
 from django.urls import reverse
 from django.template.loader import render_to_string
-from django.core.mail import EmailMultiAlternatives
 from .models import CustomUser
 
 class UserSerializer(serializers.ModelSerializer):
@@ -20,12 +21,20 @@ class UserSerializer(serializers.ModelSerializer):
         return user
 
     def send_email(self, user):
-        verification_link = self.context['request'].build_absolute_uri(reverse('verify_email', kwargs={'token': user.verification_token}))
-        subject = 'Verify your email'
-        html_content = render_to_string('emails/verification_email.html', {'user': user.username, 'verification_link': verification_link})
-        email = EmailMultiAlternatives(subject, 'Please verify your email address.', None, [user.email])
-        email.attach_alternative(html_content, 'text/html')
-        email.send(fail_silently=False)
+        verification_link = self.context['request'].build_absolute_uri(
+            reverse('verify_email', kwargs={'token': user.verification_token})
+        )
+        html_content = render_to_string(
+            'emails/verification_email.html',
+            {'user': user.username, 'verification_link': verification_link}
+        )
+        resend.api_key = os.getenv('RESEND_API_KEY')
+        resend.Emails.send({
+            'from': 'onboarding@resend.dev',
+            'to': [user.email],
+            'subject': 'Verify your email',
+            'html': html_content
+        })
         return True
 
 class UserLoginSerializer(serializers.Serializer):
