@@ -24,17 +24,9 @@ class UserSerializer(serializers.ModelSerializer):
         verification_link = self.context['request'].build_absolute_uri(
             reverse('verify_email', kwargs={'token': user.verification_token})
         )
-        html_content = render_to_string(
-            'emails/verification_email.html',
-            {'user': user.username, 'verification_link': verification_link}
-        )
+        html_content = render_to_string('emails/verification_email.html', {'user': user.username, 'verification_link': verification_link})
         resend.api_key = os.getenv('RESEND_API_KEY')
-        resend.Emails.send({
-            'from': 'onboarding@resend.dev',
-            'to': [user.email],
-            'subject': 'Verify your email',
-            'html': html_content
-        })
+        resend.Emails.send({'from': 'onboarding@resend.dev', 'to': [user.email], 'subject': 'Verify your email', 'html': html_content})
         return True
 
 class UserLoginSerializer(serializers.Serializer):
@@ -44,10 +36,9 @@ class UserLoginSerializer(serializers.Serializer):
 class UserUpdateSerializer(serializers.ModelSerializer):
     class Meta:
         model = CustomUser
-        fields = ['bio', 'image']
+        fields = ['bio']
 
     def update(self, instance, validated_data):
         instance.bio = validated_data.get('bio', instance.bio)
-        instance.image = validated_data.get('image', instance.image)
         instance.save()
         return instance
