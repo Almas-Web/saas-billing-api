@@ -48,8 +48,17 @@ jobs:
           DB_PASSWORD: postgres
           DB_HOST: 127.0.0.1
           DB_PORT: 5432
+          SECURE_SSL_REDIRECT: "False"
         run: |
           python manage.py migrate
+
+      - name: Collect static files
+        env:
+          DEBUG: "False"
+          SECRET_KEY: "ci-test-secret-key"
+          SECURE_SSL_REDIRECT: "False"
+        run: |
+          python manage.py collectstatic --noinput
 
       - name: Run tests
         env:
@@ -60,5 +69,6 @@ jobs:
           DB_PASSWORD: postgres
           DB_HOST: 127.0.0.1
           DB_PORT: 5432
+          SECURE_SSL_REDIRECT: "False"
         run: |
           pytest -q

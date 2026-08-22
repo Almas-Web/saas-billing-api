@@ -9,11 +9,6 @@ load_dotenv()
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-
-# ============================================================
-# Core settings
-# ============================================================
-
 SECRET_KEY = os.getenv("SECRET_KEY")
 
 if not SECRET_KEY:
@@ -26,11 +21,6 @@ ALLOWED_HOSTS = [
     for host in os.getenv("ALLOWED_HOSTS", "").split(",")
     if host.strip()
 ]
-
-
-# ============================================================
-# Applications
-# ============================================================
 
 INSTALLED_APPS = [
     "django.contrib.admin",
@@ -51,11 +41,6 @@ INSTALLED_APPS = [
     "rest_framework_simplejwt",
 ]
 
-
-# ============================================================
-# Middleware
-# ============================================================
-
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
     "whitenoise.middleware.WhiteNoiseMiddleware",
@@ -68,19 +53,8 @@ MIDDLEWARE = [
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
 ]
 
-
-# ============================================================
-# URL / WSGI
-# ============================================================
-
 ROOT_URLCONF = "src.urls"
-
 WSGI_APPLICATION = "src.wsgi.application"
-
-
-# ============================================================
-# Templates
-# ============================================================
 
 TEMPLATES = [
     {
@@ -98,11 +72,6 @@ TEMPLATES = [
     },
 ]
 
-
-# ============================================================
-# Database
-# ============================================================
-
 DATABASES = {
     "default": {
         "ENGINE": "django.db.backends.postgresql",
@@ -113,11 +82,6 @@ DATABASES = {
         "PORT": os.getenv("DB_PORT", "5432"),
     }
 }
-
-
-# ============================================================
-# Password validation
-# ============================================================
 
 AUTH_PASSWORD_VALIDATORS = [
     {
@@ -146,26 +110,12 @@ AUTH_PASSWORD_VALIDATORS = [
     },
 ]
 
-
-# ============================================================
-# Internationalization
-# ============================================================
-
 LANGUAGE_CODE = "en-us"
-
 TIME_ZONE = "UTC"
-
 USE_I18N = True
-
 USE_TZ = True
 
-
-# ============================================================
-# Static files
-# ============================================================
-
 STATIC_URL = "/static/"
-
 STATIC_ROOT = os.path.join(BASE_DIR, "staticfiles")
 
 STORAGES = {
@@ -177,56 +127,22 @@ STORAGES = {
     },
 }
 
-
-# ============================================================
-# Media files
-# ============================================================
-
 MEDIA_URL = "/media/"
-
 MEDIA_ROOT = os.path.join(BASE_DIR, "media")
 
-
-# ============================================================
-# Django defaults
-# ============================================================
-
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
-
 AUTH_USER_MODEL = "account.CustomUser"
 
-
-# ============================================================
-# Email
-# ============================================================
-
 EMAIL_BACKEND = "django.core.mail.backends.smtp.EmailBackend"
-
 EMAIL_HOST = "smtp.gmail.com"
-
 EMAIL_PORT = 587
-
 EMAIL_USE_TLS = True
-
 EMAIL_HOST_USER = os.getenv("EMAIL_HOST_USER")
-
 EMAIL_HOST_PASSWORD = os.getenv("EMAIL_HOST_PASSWORD")
 
-
-# ============================================================
-# Stripe
-# ============================================================
-
 STRIPE_SECRET_KEY = os.getenv("STRIPE_SECRET_KEY")
-
 STRIPE_PUBLISHABLE_KEY = os.getenv("STRIPE_PUBLISHABLE_KEY")
-
 STRIPE_WEBHOOK_SECRET = os.getenv("STRIPE_WEBHOOK_SECRET")
-
-
-# ============================================================
-# Django REST Framework
-# ============================================================
 
 REST_FRAMEWORK = {
     "DEFAULT_AUTHENTICATION_CLASSES": (
@@ -238,25 +154,53 @@ REST_FRAMEWORK = {
     "DEFAULT_SCHEMA_CLASS": "drf_spectacular.openapi.AutoSchema",
 }
 
-
-# ============================================================
-# JWT
-# ============================================================
-
 SIMPLE_JWT = {
     "ACCESS_TOKEN_LIFETIME": timedelta(minutes=60),
     "REFRESH_TOKEN_LIFETIME": timedelta(days=1),
 }
 
-
-# ============================================================
-# API Documentation
-# ============================================================
-
 SPECTACULAR_SETTINGS = {
     "TITLE": "SaaS Billing API",
-    "DESCRIPTION": "Subscription, Payment, Billing and Usage API",
+    "DESCRIPTION": (
+        "Production-ready SaaS Billing REST API for "
+        "authentication, subscriptions, projects, payments, "
+        "billing and usage tracking."
+    ),
     "VERSION": "1.0.0",
+    "TAGS": [
+        {
+            "name": "Authentication",
+            "description": "User registration, login, JWT and email verification.",
+        },
+        {
+            "name": "Profile",
+            "description": "Authenticated user profile management.",
+        },
+        {
+            "name": "Subscription Plans",
+            "description": "Subscription plan management and CRUD operations.",
+        },
+        {
+            "name": "Subscriptions",
+            "description": "Customer subscription management.",
+        },
+        {
+            "name": "Projects",
+            "description": "Project creation and project management.",
+        },
+        {
+            "name": "Payments",
+            "description": "Payment creation, status updates and payment webhooks.",
+        },
+        {
+            "name": "Billing",
+            "description": "Invoice management and PDF invoice downloads.",
+        },
+        {
+            "name": "Usage",
+            "description": "API, project and storage usage tracking.",
+        },
+    ],
     "ENUM_NAME_OVERRIDES": {
         "PaymentStatusEnum": "payments.models.Payment.STATUS_CHOICES",
         "ProjectLimitStatusEnum": [
@@ -267,56 +211,30 @@ SPECTACULAR_SETTINGS = {
     },
 }
 
-
-# ============================================================
-# CSRF
-# ============================================================
-
 CSRF_TRUSTED_ORIGINS = [
     origin.strip()
     for origin in os.getenv("CSRF_TRUSTED_ORIGINS", "").split(",")
     if origin.strip()
 ]
 
-
-# ============================================================
-# Production security
-# ============================================================
-
 if not DEBUG:
-    SECURE_SSL_REDIRECT = True
-
+    SECURE_SSL_REDIRECT = (
+        os.getenv("SECURE_SSL_REDIRECT", "True").lower() == "true"
+    )
     SESSION_COOKIE_SECURE = True
-
     CSRF_COOKIE_SECURE = True
-
     SECURE_HSTS_SECONDS = 31536000
-
     SECURE_HSTS_INCLUDE_SUBDOMAINS = True
-
     SECURE_HSTS_PRELOAD = True
-
     SECURE_CONTENT_TYPE_NOSNIFF = True
-
     SECURE_REFERRER_POLICY = "strict-origin-when-cross-origin"
-
     X_FRAME_OPTIONS = "DENY"
-
-
-# ============================================================
-# CORS
-# ============================================================
 
 CORS_ALLOWED_ORIGINS = [
     origin.strip()
     for origin in os.getenv("CORS_ALLOWED_ORIGINS", "").split(",")
     if origin.strip()
 ]
-
-
-# ============================================================
-# Logging
-# ============================================================
 
 LOGGING = {
     "version": 1,
