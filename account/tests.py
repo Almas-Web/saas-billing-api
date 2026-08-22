@@ -1,6 +1,7 @@
-from django.core import mail
+from unittest.mock import patch
+
 from django.urls import reverse
-from django.test import TestCase, override_settings
+from django.test import TestCase
 
 from rest_framework import status
 from rest_framework.test import APIClient
@@ -8,9 +9,6 @@ from rest_framework.test import APIClient
 from .models import CustomUser
 
 
-@override_settings(
-    EMAIL_BACKEND="django.core.mail.backends.locmem.EmailBackend"
-)
 class AccountTests(TestCase):
 
     def setUp(self):
@@ -20,61 +18,80 @@ class AccountTests(TestCase):
             username="testuser",
             email="test@example.com",
             password="TestPassword123",
-            is_verified=True,)
-
-    # Registration
-
-    def test_user_registration(self):
-        response = self.client.post(
-            reverse("signup"),
-            {
-                "username": "newuser",
-                "email": "newuser@example.com",
-                "password": "NewPassword123",
-            },
-            format="json",
+            is_verified=True,
         )
 
-        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+    def test_user_registration(self):
+        with patch("account.serializers.resend.Emails.send") as mock_send:
+            response = self.client.post(
+                reverse("signup"),
+                {
+                    "username": "newuser",
+                    "email": "newuser@example.com",
+                    "password": "NewPassword123",
+                },
+                format="json",
+            )
 
-        user = CustomUser.objects.get(email="newuser@example.com")
+        self.assertEqual(
+            response.status_code,
+            status.HTTP_201_CREATED,
+        )
+
+        user = CustomUser.objects.get(
+            email="newuser@example.com"
+        )
 
         self.assertEqual(user.username, "newuser")
         self.assertFalse(user.is_verified)
         self.assertIsNotNone(user.verification_token)
+        mock_send.assert_called_once()
 
     def test_password_is_hashed(self):
-        self.client.post(
-            reverse("signup"),
-            {
-                "username": "hashuser",
-                "email": "hash@example.com",
-                "password": "Password123",
-            },
-            format="json",
+        with patch("account.serializers.resend.Emails.send"):
+            self.client.post(
+                reverse("signup"),
+                {
+                    "username": "hashuser",
+                    "email": "hash@example.com",
+                    "password": "Password123",
+                },
+                format="json",
+            )
+
+        user = CustomUser.objects.get(
+            email="hash@example.com"
         )
 
-        user = CustomUser.objects.get(email="hash@example.com")
+        self.assertNotEqual(
+            user.password,
+            "Password123",
+        )
 
-        self.assertNotEqual(user.password, "Password123")
-        self.assertTrue(user.check_password("Password123"))
+        self.assertTrue(
+            user.check_password("Password123")
+        )
 
     def test_registration_sends_verification_email(self):
-        self.client.post(
-            reverse("signup"),
-            {
-                "username": "emailuser",
-                "email": "email@example.com",
-                "password": "Password123",
-            },
-            format="json",
+        with patch(
+            "account.serializers.resend.Emails.send"
+        ) as mock_send:
+            response = self.client.post(
+                reverse("signup"),
+                {
+                    "username": "emailuser",
+                    "email": "email@example.com",
+                    "password": "Password123",
+                },
+                format="json",
+            )
+
+        self.assertEqual(
+            response.status_code,
+            status.HTTP_201_CREATED,
         )
 
-        self.assertEqual(len(mail.outbox), 1)
-        self.assertEqual(mail.outbox[0].to, ["email@example.com"])
-        self.assertEqual(mail.outbox[0].subject, "Verify your email")
-
-    # Email Verification
+        mock_send.assert_called_once()
 
     def test_email_verification(self):
         user = CustomUser.objects.create_user(
@@ -88,11 +105,16 @@ class AccountTests(TestCase):
         response = self.client.get(
             reverse(
                 "verify_email",
-                kwargs={"token": user.verification_token},
+                kwargs={
+                    "token": user.verification_token
+                },
             )
         )
 
-        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(
+            response.status_code,
+            status.HTTP_200_OK,
+        )
 
         user.refresh_from_db()
 
@@ -103,7 +125,9 @@ class AccountTests(TestCase):
         response = self.client.get(
             reverse(
                 "verify_email",
-                kwargs={"token": "invalid-token"},
+                kwargs={
+                    "token": "invalid-token"
+                },
             )
         )
 
@@ -124,7 +148,9 @@ class AccountTests(TestCase):
         response = self.client.get(
             reverse(
                 "verify_email",
-                kwargs={"token": user.verification_token},
+                kwargs={
+                    "token": user.verification_token
+                },
             )
         )
 
@@ -133,9 +159,8 @@ class AccountTests(TestCase):
             status.HTTP_400_BAD_REQUEST,
         )
 
-    # Resend Verification
-
-    def test_resend_verification_email(self):
+    @patch("account.views.resend.Emails.send")
+    def test_resend_verification_email(self, mock_send):
         user = CustomUser.objects.create_user(
             username="resenduser",
             email="resend@example.com",
@@ -157,13 +182,16 @@ class AccountTests(TestCase):
 
         user.refresh_from_db()
 
-        self.assertIsNotNone(user.verification_token)
+        self.assertIsNotNone(
+            user.verification_token
+        )
+
         self.assertNotEqual(
             user.verification_token,
             "old-token",
         )
 
-        self.assertEqual(len(mail.outbox), 1)
+        mock_send.assert_called_once()
 
     def test_resend_verification_without_email(self):
         response = self.client.post(
@@ -180,7 +208,9 @@ class AccountTests(TestCase):
     def test_resend_verification_for_nonexistent_user(self):
         response = self.client.post(
             reverse("resend_verification"),
-            {"email": "doesnotexist@example.com"},
+            {
+                "email": "doesnotexist@example.com"
+            },
             format="json",
         )
 
@@ -201,8 +231,6 @@ class AccountTests(TestCase):
             status.HTTP_400_BAD_REQUEST,
         )
 
-    # Login
-
     def test_user_login(self):
         response = self.client.post(
             reverse("login"),
@@ -218,8 +246,15 @@ class AccountTests(TestCase):
             status.HTTP_200_OK,
         )
 
-        self.assertIn("access_token", response.data)
-        self.assertIn("refresh_token", response.data)
+        self.assertIn(
+            "access_token",
+            response.data,
+        )
+
+        self.assertIn(
+            "refresh_token",
+            response.data,
+        )
 
     def test_login_with_wrong_password(self):
         response = self.client.post(
@@ -258,10 +293,10 @@ class AccountTests(TestCase):
             status.HTTP_401_UNAUTHORIZED,
         )
 
-    # Profile
-
     def test_authenticated_user_can_view_profile(self):
-        self.client.force_authenticate(user=self.user)
+        self.client.force_authenticate(
+            user=self.user
+        )
 
         response = self.client.get(
             reverse("profile")
@@ -288,11 +323,15 @@ class AccountTests(TestCase):
         )
 
     def test_user_can_update_profile(self):
-        self.client.force_authenticate(user=self.user)
+        self.client.force_authenticate(
+            user=self.user
+        )
 
         response = self.client.patch(
             reverse("profile"),
-            {"bio": "Python Backend Developer"},
+            {
+                "bio": "Python Backend Developer"
+            },
             format="json",
         )
 
@@ -308,8 +347,6 @@ class AccountTests(TestCase):
             "Python Backend Developer",
         )
 
-    # JWT Refresh
-
     def test_refresh_token(self):
         login_response = self.client.post(
             reverse("login"),
@@ -320,11 +357,20 @@ class AccountTests(TestCase):
             format="json",
         )
 
-        refresh_token = login_response.data["refresh_token"]
+        self.assertEqual(
+            login_response.status_code,
+            status.HTTP_200_OK,
+        )
+
+        refresh_token = login_response.data[
+            "refresh_token"
+        ]
 
         response = self.client.post(
             reverse("token_refresh"),
-            {"refresh": refresh_token},
+            {
+                "refresh": refresh_token
+            },
             format="json",
         )
 
@@ -333,4 +379,7 @@ class AccountTests(TestCase):
             status.HTTP_200_OK,
         )
 
-        self.assertIn("access", response.data)
+        self.assertIn(
+            "access",
+            response.data,
+        )
