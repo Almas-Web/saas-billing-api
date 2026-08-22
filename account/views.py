@@ -10,6 +10,8 @@ from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
 from rest_framework_simplejwt.tokens import RefreshToken
 
+from drf_spectacular.utils import extend_schema
+
 from .models import CustomUser
 from .serializers import (
     UserSerializer,
@@ -18,10 +20,12 @@ from .serializers import (
 )
 
 
+@extend_schema(tags=["Authentication"])
 class UserSignUp(generics.CreateAPIView):
     serializer_class = UserSerializer
 
 
+@extend_schema(tags=["Authentication"])
 class VerifyEmail(generics.GenericAPIView):
     serializer_class = UserSerializer
     swagger_fake_view = True
@@ -53,6 +57,7 @@ class VerifyEmail(generics.GenericAPIView):
         )
 
 
+@extend_schema(tags=["Authentication"])
 class ResendVerificationEmail(generics.GenericAPIView):
     serializer_class = UserSerializer
     swagger_fake_view = True
@@ -115,6 +120,7 @@ class ResendVerificationEmail(generics.GenericAPIView):
         )
 
 
+@extend_schema(tags=["Authentication"])
 class UserLogin(generics.GenericAPIView):
     serializer_class = UserLoginSerializer
 
@@ -146,6 +152,7 @@ class UserLogin(generics.GenericAPIView):
         )
 
 
+@extend_schema(tags=["Profile"])
 class RetrieveUpdateProfile(generics.RetrieveUpdateAPIView):
     queryset = CustomUser.objects.all()
     permission_classes = [IsAuthenticated]

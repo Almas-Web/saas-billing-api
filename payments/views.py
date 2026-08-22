@@ -1,23 +1,19 @@
 import stripe
 import requests
-
 from django.conf import settings
 from django.utils import timezone
-
 from drf_spectacular.utils import extend_schema
 from rest_framework import generics, permissions, status
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.views import APIView
 from rest_framework.response import Response
-
 from billing.services import create_invoice_from_payment
 from subscriptions.services import activate_or_renew_subscription
-
 from .models import Payment, WebhookEvent
 from .serializers import PaymentSerializer, PaymentStatusSerializer, SSLCommerzCallbackSerializer, SSLCommerzCallbackResponseSerializer
 from .services import create_payment_intent, get_payment_gateway
 
-
+@extend_schema(tags=["Payments"])
 class PaymentListView(generics.ListAPIView):
     serializer_class = PaymentSerializer
     permission_classes = [permissions.IsAuthenticated]
@@ -25,7 +21,7 @@ class PaymentListView(generics.ListAPIView):
     def get_queryset(self):
         return Payment.objects.filter(user=self.request.user).order_by("-created_at")
 
-
+@extend_schema(tags=["Payments"])
 class PaymentDetailView(generics.RetrieveAPIView):
     serializer_class = PaymentSerializer
     permission_classes = [permissions.IsAuthenticated]
@@ -33,7 +29,7 @@ class PaymentDetailView(generics.RetrieveAPIView):
     def get_queryset(self):
         return Payment.objects.filter(user=self.request.user)
 
-
+@extend_schema(tags=["Payments"])
 class PaymentCreateView(generics.CreateAPIView):
     serializer_class = PaymentSerializer
     permission_classes = [IsAuthenticated]
@@ -61,20 +57,17 @@ class PaymentCreateView(generics.CreateAPIView):
         except stripe.error.StripeError as exc:
             payment.delete()
             return Response({"detail": "Unable to create Stripe PaymentIntent.", "error": str(exc)}, status=status.HTTP_502_BAD_GATEWAY)
-
         except NotImplementedError as exc:
             payment.delete()
             return Response({"detail": str(exc)}, status=status.HTTP_501_NOT_IMPLEMENTED)
-
         except RuntimeError as exc:
             payment.delete()
             return Response({"detail": str(exc)}, status=status.HTTP_503_SERVICE_UNAVAILABLE)
-
         except Exception:
             payment.delete()
             return Response({"detail": "An unexpected error occurred."}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
-
+@extend_schema(tags=["Payments"])
 class PaymentStatusUpdateView(generics.UpdateAPIView):
     serializer_class = PaymentStatusSerializer
     permission_classes = [IsAuthenticated]
@@ -82,7 +75,7 @@ class PaymentStatusUpdateView(generics.UpdateAPIView):
     def get_queryset(self):
         return Payment.objects.filter(user=self.request.user)
 
-
+@extend_schema(tags=["Payments"])
 class PaymentWebhookView(APIView):
     serializer_class = PaymentSerializer
     authentication_classes = []
@@ -145,7 +138,6 @@ class PaymentWebhookView(APIView):
         WebhookEvent.objects.create(event_id=event_id, event_type=event_type, processed=True)
         return Response({"detail": "Stripe webhook processed successfully."}, status=status.HTTP_200_OK)
 
-
 class SSLCommerzCallbackMixin:
     authentication_classes = []
     permission_classes = []
@@ -200,8 +192,7 @@ class SSLCommerzCallbackMixin:
 
         create_invoice_from_payment(payment)
 
-
-@extend_schema(request=SSLCommerzCallbackSerializer, responses=SSLCommerzCallbackResponseSerializer)
+@extend_schema(tags=["Payments"], request=SSLCommerzCallbackSerializer, responses=SSLCommerzCallbackResponseSerializer)
 class SSLCommerzSuccessView(SSLCommerzCallbackMixin, APIView):
     def post(self, request):
         transaction_id = request.data.get("tran_id")
@@ -229,8 +220,7 @@ class SSLCommerzSuccessView(SSLCommerzCallbackMixin, APIView):
     def get(self, request):
         return self.post(request)
 
-
-@extend_schema(request=SSLCommerzCallbackSerializer, responses=SSLCommerzCallbackResponseSerializer)
+@extend_schema(tags=["Payments"], request=SSLCommerzCallbackSerializer, responses=SSLCommerzCallbackResponseSerializer)
 class SSLCommerzFailView(SSLCommerzCallbackMixin, APIView):
     def post(self, request):
         transaction_id = request.data.get("tran_id")
@@ -251,8 +241,7 @@ class SSLCommerzFailView(SSLCommerzCallbackMixin, APIView):
     def get(self, request):
         return self.post(request)
 
-
-@extend_schema(request=SSLCommerzCallbackSerializer, responses=SSLCommerzCallbackResponseSerializer)
+@extend_schema(tags=["Payments"], request=SSLCommerzCallbackSerializer, responses=SSLCommerzCallbackResponseSerializer)
 class SSLCommerzCancelView(SSLCommerzCallbackMixin, APIView):
     def post(self, request):
         transaction_id = request.data.get("tran_id")
@@ -273,8 +262,7 @@ class SSLCommerzCancelView(SSLCommerzCallbackMixin, APIView):
     def get(self, request):
         return self.post(request)
 
-
-@extend_schema(request=SSLCommerzCallbackSerializer, responses=SSLCommerzCallbackResponseSerializer)
+@extend_schema(tags=["Payments"], request=SSLCommerzCallbackSerializer, responses=SSLCommerzCallbackResponseSerializer)
 class SSLCommerzIPNView(SSLCommerzCallbackMixin, APIView):
     def post(self, request):
         transaction_id = request.data.get("tran_id")
